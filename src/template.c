@@ -14,7 +14,8 @@
 #define DEFAULT_STACK_SIZE 2048 
 
 //Add here necessary states
-enum state { IDLE=1 };
+enum state { IDLE=1, READ_SENSOR, DATA_READY,
+MSG_READY, NEW_MSG, UPDATE_LCD};
 enum state programState = IDLE;
 
 static void example_task(void *arg){
