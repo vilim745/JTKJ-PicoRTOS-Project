@@ -12,10 +12,11 @@
 
 // Default stack size for the tasks. It can be reduced to 1024 if task is not using lot of memory.
 #define DEFAULT_STACK_SIZE 2048 
+// #define DISPLAY_WIDTH
+// #define MSG_BUFFER 
 
 //Add here necessary states
-enum state { IDLE=1, READ_SENSOR, DATA_READY,
-MSG_READY, NEW_MSG, UPDATE_LCD};
+enum state { IDLE=1, READ_SENSOR, DATA_READY, MSG_READY, NEW_MSG, UPDATE_LCD };
 enum state programState = IDLE;
 
 static void example_task(void *arg){
@@ -55,5 +56,30 @@ int main() {
 
     // Never reach this line.
     return 0;
+
+
+    void sensorTask() {
+        // Kerää dataa liikesensorilta ja tulkitsee liikekomennot
+
+    }
+
+    void morseTask() {
+        // Muuttaa raakadatan morse-merkeiksi
+    }
+
+    void receiveTask() {
+        // Lähettää morsekoodin tietokoneelle
+    }
+
+    void receiveTask() {
+        // Vastaanottaa morseviestin tietokoneelta
+    }
+
+    void displayTask() {
+        // Näyttää vastaanotetun tekstin näytöllä
+    }
+
+
+
 }
 
