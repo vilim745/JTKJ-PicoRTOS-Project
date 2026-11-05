@@ -85,14 +85,14 @@ void displayTask(void *pvParameters)
     // Displays the received message on the screen
     while (1)
     {
+        (void)pvParameters;
         if (programState == UPDATE_LCD)
         {
-
             update_screen();
-
             programState = IDLE;
-            vTaskDelay(pdMS_TO_TICKS(2000));
         }
+
+        vTaskDelay(pdMS_TO_TICKS(2000));
     }
 }
 
@@ -128,11 +128,31 @@ int main()
     TaskHandle_t hReceiveTask = NULL;
     TaskHandle_t hDisplayTask = NULL;
 
-    xTaskCreate(sensorTask, "Sensor", 2048, NULL, 2, &hSensorTask);
-    xTaskCreate(morseTask, "Morse", 2048, NULL, 2, &hMorseTask);
-    xTaskCreate(transmitTask, "Transmit", 2048, NULL, 2, &hTransmitTask);
-    xTaskCreate(receiveTask, "Receive", 2048, NULL, 2, &hReceiveTask);
-    xTaskCreate(displayTask, "Display", 2048, NULL, 1, &hDisplayTask);
+    if(xTaskCreate(sensorTask, "Sensor", 2048, NULL, 2, &hSensorTask)) != pdPASS {
+        printf("Sensor Task creation failed\n");
+        return 0;
+    };
+
+    if(xTaskCreate(morseTask, "Morse", 2048, NULL, 2, &hMorseTask)) != pdPASS {
+        printf("Morse Task creation failed\n");
+        return 0;
+    };
+
+    if(xTaskCreate(transmitTask, "Transmit", 2048, NULL, 2, &hTransmitTask)) != pdPASS {
+        printf("Transmit Task creation failed\n");
+        return 0
+        ;
+    };
+
+    if(xTaskCreate(receiveTask, "Receive", 2048, NULL, 2, &hReceiveTask)) != pdPASS {
+        printf("Receive Task creation failed\n");
+        return 0;
+    };
+
+    if(xTaskCreate(displayTask, "Display", 2048, NULL, 2, &hDisplayTask)) != pdPASS {
+        printf("Display Task creation failed\n");
+        return 0;
+    };
 
 
     // Start the scheduler (never returns)
