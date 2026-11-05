@@ -92,10 +92,12 @@ void displayTask(void *pvParameters)
     // Displays the received message on the screen
     while (1)
     {
-        (void)pvParameters;
+    
         if (programState == UPDATE_LCD)
         {
-
+            void init_display(void);
+            char text[] = ":)";
+            void write_text(const char *text);
             update_screen();
 
             programState = IDLE;
