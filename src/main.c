@@ -45,6 +45,7 @@ void sensorTask(void *pvParameters)
     // Collects data from movement-sensor and recognizes movement commands
     while (1)
     {
+        vTaskDelay(pdMS_TO_TICKS(2000));
     }
 }
 
@@ -54,6 +55,7 @@ void morseTask(void *pvParameters)
     // transforms raw data to morse symbols
     while (1)
     {
+        vTaskDelay(pdMS_TO_TICKS(2000));
     }
 }
 
@@ -63,6 +65,7 @@ void transmitTask(void *pvParameters)
     // Sends morse-code to the computer using USB
     while (1)
     {
+        vTaskDelay(pdMS_TO_TICKS(2000));
     }
 }
 
@@ -72,6 +75,7 @@ void receiveTask(void *pvParameters)
     // Receives morse-code message from the computer using USB
     while (1)
     {
+        vTaskDelay(pdMS_TO_TICKS(2000));
     }
 }
 
@@ -87,6 +91,7 @@ void displayTask(void *pvParameters)
             update_screen();
 
             programState = IDLE;
+            vTaskDelay(pdMS_TO_TICKS(2000));
         }
     }
 }
