@@ -109,40 +109,6 @@ void displayTask(void *pvParameters)
     
 }
 
-void imu_task(void *pvParameters) {
-    // Taken from examples, used for printing received gyro data to terminal
-    (void)pvParameters;
-    
-    float ax, ay, az, gx, gy, gz, t;
-    // Setting up the sensor. 
-    if (init_ICM42670() == 0) {
-        printf("ICM-42670P initialized successfully!\n");
-        if (ICM42670_start_with_default_values() != 0){
-            printf("ICM-42670P could not initialize accelerometer or gyroscope");
-        }
-        /*int _enablegyro = ICM42670_enable_accel_gyro_ln_mode();
-        printf ("Enable gyro: %d\n",_enablegyro);
-        int _gyro = ICM42670_startGyro(ICM42670_GYRO_ODR_DEFAULT, ICM42670_GYRO_FSR_DEFAULT);
-        printf ("Gyro return:  %d\n", _gyro);
-        int _accel = ICM42670_startAccel(ICM42670_ACCEL_ODR_DEFAULT, ICM42670_ACCEL_FSR_DEFAULT);
-        printf ("Accel return:  %d\n", _accel);*/
-    } else {
-        printf("Failed to initialize ICM-42670P.\n");
-    }
-    // Start collection data here. Infinite loop. 
-    while (1)
-    {
-        if (ICM42670_read_sensor_data(&ax, &ay, &az, &gx, &gy, &gz, &t) == 0) {
-            
-            printf("Accel: X=%f, Y=%f, Z=%f | Gyro: X=%f, Y=%f, Z=%f| Temp: %2.2f°C\n", ax, ay, az, gx, gy, gz, t);
-
-        } else {
-            printf("Failed to read imu data\n");
-        }
-        vTaskDelay(pdMS_TO_TICKS(500));
-    }
-
-}
 
 
 int main()
@@ -160,6 +126,9 @@ int main()
     TaskHandle_t hTransmitTask = NULL;
     TaskHandle_t hReceiveTask = NULL;
     TaskHandle_t hDisplayTask = NULL;
+    TaskHandle_t hImuTask = NULL;
+
+    
 
     if(xTaskCreate(sensorTask, "Sensor", DEFAULT_STACK_SIZE, NULL, 2, &hSensorTask)) != pdPASS {
         printf("Sensor Task creation failed\n");
@@ -186,6 +155,7 @@ int main()
         printf("Display Task creation failed\n");
         return 0;
     };
+
 
 
     // Start the scheduler (never returns)
