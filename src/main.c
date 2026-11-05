@@ -121,6 +121,20 @@ int main()
         return 0;
     }
 
+
+    TaskHandle_t hSensorTask = NULL;
+    TaskHandle_t hMorseTask = NULL;
+    TaskHandle_t hTransmitTask = NULL;
+    TaskHandle_t hReceiveTask = NULL;
+    TaskHandle_t hDisplayTask = NULL;
+
+    xTaskCreate(sensorTask, "Sensor", 2048, NULL, 2, &hSensorTask);
+    xTaskCreate(morseTask, "Morse", 2048, NULL, 2, &hMorseTask);
+    xTaskCreate(transmitTask, "Transmit", 2048, NULL, 2, &hTransmitTask);
+    xTaskCreate(receiveTask, "Receive", 2048, NULL, 2, &hReceiveTask);
+    xTaskCreate(displayTask, "Display", 2048, NULL, 1, &hDisplayTask);
+
+
     // Start the scheduler (never returns)
     vTaskStartScheduler();
 
