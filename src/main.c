@@ -46,6 +46,7 @@ void sensorTask(void *pvParameters)
     // Collects data from movement-sensor and recognizes movement commands
     while (1)
     {
+        vTaskDelay(pdMS_TO_TICKS(2000));
     }
 }
 
@@ -56,6 +57,7 @@ void morseTask(void *pvParameters)
     // transforms raw data to morse symbols
     while (1)
     {
+        vTaskDelay(pdMS_TO_TICKS(2000));
     }
 }
 
@@ -66,6 +68,7 @@ void transmitTask(void *pvParameters)
     // Sends morse-code to the computer using USB
     while (1)
     {
+        vTaskDelay(pdMS_TO_TICKS(2000));
     }
 }
 
@@ -76,6 +79,7 @@ void receiveTask(void *pvParameters)
     // Receives morse-code message from the computer using USB
     while (1)
     {
+        vTaskDelay(pdMS_TO_TICKS(2000));
     }
 }
 
@@ -86,16 +90,16 @@ void displayTask(void *pvParameters)
     // Displays the received message on the screen
     while (1)
     {
+        (void)pvParameters;
         if (programState == UPDATE_LCD)
         {
 
-                char text[] = ":)";
-                void write_text(const char *text);
-
-            //update_screen();
+            update_screen();
 
             programState = IDLE;
         }
+
+        vTaskDelay(pdMS_TO_TICKS(2000));
     }
 
     
@@ -147,20 +151,38 @@ int main()
     init_hat_sdk();
     sleep_ms(300); // Wait some time so initialization of USB and hat is done.
 
-    TaskHandle_t myExampleTask = NULL;
-    // Create the tasks with xTaskCreate
-    BaseType_t result = xTaskCreate(example_task,       // (en) Task function
-                                    "example",          // (en) Name of the task
-                                    DEFAULT_STACK_SIZE, // (en) Size of the stack for this task (in words). Generally 1024 or 2048
-                                    NULL,               // (en) Arguments of the task
-                                    2,                  // (en) Priority of this task
-                                    &myExampleTask);    // (en) A handle to control the execution of this task
+    TaskHandle_t hSensorTask = NULL;
+    TaskHandle_t hMorseTask = NULL;
+    TaskHandle_t hTransmitTask = NULL;
+    TaskHandle_t hReceiveTask = NULL;
+    TaskHandle_t hDisplayTask = NULL;
 
-    if (result != pdPASS)
-    {
-        printf("Example Task creation failed\n");
+    if(xTaskCreate(sensorTask, "Sensor", DEFAULT_STACK_SIZE, NULL, 2, &hSensorTask)) != pdPASS {
+        printf("Sensor Task creation failed\n");
         return 0;
-    }
+    };
+
+    if(xTaskCreate(morseTask, "Morse", DEFAULT_STACK_SIZE, NULL, 2, &hMorseTask)) != pdPASS {
+        printf("Morse Task creation failed\n");
+        return 0;
+    };
+
+    if(xTaskCreate(transmitTask, "Transmit", DEFAULT_STACK_SIZE, NULL, 2, &hTransmitTask)) != pdPASS {
+        printf("Transmit Task creation failed\n");
+        return 0
+        ;
+    };
+
+    if(xTaskCreate(receiveTask, "Receive", DEFAULT_STACK_SIZE, NULL, 2, &hReceiveTask)) != pdPASS {
+        printf("Receive Task creation failed\n");
+        return 0;
+    };
+
+    if(xTaskCreate(displayTask, "Display", DEFAULT_STACK_SIZE, NULL, 2, &hDisplayTask)) != pdPASS {
+        printf("Display Task creation failed\n");
+        return 0;
+    };
+
 
     // Start the scheduler (never returns)
     vTaskStartScheduler();
