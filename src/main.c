@@ -60,9 +60,7 @@ int main() {
 
     void sensorTask(void *pvParameters) {
         // Kerää dataa liikesensorilta ja tulkitsee liikekomennot
-        while (1) {
-            
-        }
+        while (1) {}
 
     }
 
