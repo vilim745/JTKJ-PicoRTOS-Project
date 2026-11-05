@@ -27,6 +27,16 @@ enum state
 };
 enum state programState = IDLE;
 
+struct sensor_data {
+    float ax;
+    float ay;
+    float az;
+    float gx;
+    float gy;
+    float gz;
+    float t;
+}
+
 
 void sensorTask(void *pvParameters)
 {
@@ -41,7 +51,7 @@ void sensorTask(void *pvParameters)
 
         if (programState == READ_SENSOR) {
             // Reads sensor data, detects the orientation and checks if button pressed.
-            
+            read_data();
             if (/*Button pressed*/) {
                 // Save orientation and the corresponding symbol (Dash or dot)
 
@@ -52,6 +62,48 @@ void sensorTask(void *pvParameters)
     }
 }
 
+void read_data() {
+
+    float ax, ay, az, gx, gy, gz, t;
+    // Setting up the sensor. 
+    if (init_ICM42670() == 0) {
+        printf("ICM-42670P initialized successfully!\n");
+        if (ICM42670_start_with_default_values() != 0){
+            printf("ICM-42670P could not initialize accelerometer or gyroscope");
+        }
+        /*int _enablegyro = ICM42670_enable_accel_gyro_ln_mode();
+        printf ("Enable gyro: %d\n",_enablegyro);
+        int _gyro = ICM42670_startGyro(ICM42670_GYRO_ODR_DEFAULT, ICM42670_GYRO_FSR_DEFAULT);
+        printf ("Gyro return:  %d\n", _gyro);
+        int _accel = ICM42670_startAccel(ICM42670_ACCEL_ODR_DEFAULT, ICM42670_ACCEL_FSR_DEFAULT);
+        printf ("Accel return:  %d\n", _accel);*/
+    } else {
+        printf("Failed to initialize ICM-42670P.\n");
+    }
+    // Start collection data here. Infinite loop. 
+    while (1)
+    {
+        if (ICM42670_read_sensor_data(&ax, &ay, &az, &gx, &gy, &gz, &t) == 0) {
+            
+            //printf("Accel: X=%f, Y=%f, Z=%f | Gyro: X=%f, Y=%f, Z=%f| Temp: %2.2f°C\n", ax, ay, az, gx, gy, gz, t);
+            
+            struct sensor_data data.ax = ax;
+            struct sensor_data data.ay = ay;
+            struct sensor_data data.az = az;
+            struct sensor_data data.gx = gx;
+            struct sensor_data data.gy = gy;
+            struct sensor_data data.gz = gz;
+            struct sensor_data data.t = t;
+            
+
+        } else {
+            printf("Failed to read imu data\n");
+        }
+        vTaskDelay(pdMS_TO_TICKS(500));
+    }
+
+}
+
 void morseTask(void *pvParameters)
 {
     (void)pvParameters;
@@ -59,9 +111,12 @@ void morseTask(void *pvParameters)
     // transforms raw data to morse symbols
     while (1)
     {
+        receive_Data();
         vTaskDelay(pdMS_TO_TICKS(2000));
     }
 }
+
+
 
 void transmitTask(void *pvParameters)
 {
