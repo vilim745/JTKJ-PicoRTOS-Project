@@ -30,6 +30,7 @@ enum state programState = IDLE;
 
 void sensorTask(void *pvParameters)
 {
+    (void)pvParameters;
     // Kerää dataa liikesensorilta ja tulkitsee liikekomennot
     // Collects data from movement-sensor and recognizes movement commands
     while (1)
@@ -53,6 +54,7 @@ void sensorTask(void *pvParameters)
 
 void morseTask(void *pvParameters)
 {
+    (void)pvParameters;
     // Muuttaa raakadatan morse-merkeiksi
     // transforms raw data to morse symbols
     while (1)
@@ -63,6 +65,7 @@ void morseTask(void *pvParameters)
 
 void transmitTask(void *pvParameters)
 {
+    (void)pvParameters;
     // Lähettää morsekoodin tietokoneelle
     // Sends morse-code to the computer using USB
     while (1)
@@ -73,6 +76,7 @@ void transmitTask(void *pvParameters)
 
 void receiveTask(void *pvParameters)
 {
+    (void)pvParameters;
     // Vastaanottaa morseviestin tietokoneelta
     // Receives morse-code message from the computer using USB
     while (1)
@@ -82,7 +86,8 @@ void receiveTask(void *pvParameters)
 }
 
 void displayTask(void *pvParameters)
-{
+{  
+    (void)pvParameters;
     // Näyttää vastaanotetun tekstin näytöllä
     // Displays the received message on the screen
     while (1)
@@ -90,13 +95,53 @@ void displayTask(void *pvParameters)
         (void)pvParameters;
         if (programState == UPDATE_LCD)
         {
+
             update_screen();
+
             programState = IDLE;
         }
 
         vTaskDelay(pdMS_TO_TICKS(2000));
     }
+
+    
 }
+
+void imu_task(void *pvParameters) {
+    // Taken from examples, used for printing received gyro data to terminal
+    (void)pvParameters;
+    
+    float ax, ay, az, gx, gy, gz, t;
+    // Setting up the sensor. 
+    if (init_ICM42670() == 0) {
+        printf("ICM-42670P initialized successfully!\n");
+        if (ICM42670_start_with_default_values() != 0){
+            printf("ICM-42670P could not initialize accelerometer or gyroscope");
+        }
+        /*int _enablegyro = ICM42670_enable_accel_gyro_ln_mode();
+        printf ("Enable gyro: %d\n",_enablegyro);
+        int _gyro = ICM42670_startGyro(ICM42670_GYRO_ODR_DEFAULT, ICM42670_GYRO_FSR_DEFAULT);
+        printf ("Gyro return:  %d\n", _gyro);
+        int _accel = ICM42670_startAccel(ICM42670_ACCEL_ODR_DEFAULT, ICM42670_ACCEL_FSR_DEFAULT);
+        printf ("Accel return:  %d\n", _accel);*/
+    } else {
+        printf("Failed to initialize ICM-42670P.\n");
+    }
+    // Start collection data here. Infinite loop. 
+    while (1)
+    {
+        if (ICM42670_read_sensor_data(&ax, &ay, &az, &gx, &gy, &gz, &t) == 0) {
+            
+            printf("Accel: X=%f, Y=%f, Z=%f | Gyro: X=%f, Y=%f, Z=%f| Temp: %2.2f°C\n", ax, ay, az, gx, gy, gz, t);
+
+        } else {
+            printf("Failed to read imu data\n");
+        }
+        vTaskDelay(pdMS_TO_TICKS(500));
+    }
+
+}
+
 
 int main()
 {
