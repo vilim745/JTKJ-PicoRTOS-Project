@@ -60,19 +60,32 @@ int main() {
 
     void sensorTask(void *pvParameters) {
         // Kerää dataa liikesensorilta ja tulkitsee liikekomennot
+        while (1) {
+            
+        }
 
     }
 
     void morseTask(void *pvParameters) {
         // Muuttaa raakadatan morse-merkeiksi
+        while (1) {
+
+        }
+
     }
 
     void receiveTask(void *pvParameters) {
         // Lähettää morsekoodin tietokoneelle
+        while (1) {
+
+        }
     }
 
     void receiveTask(void *pvParameters) {
         // Vastaanottaa morseviestin tietokoneelta
+        while (1) {
+
+        }
     }
 
     void displayTask(void *pvParameters) {
