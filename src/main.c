@@ -60,20 +60,23 @@ int main() {
 
     void sensorTask(void *pvParameters) {
         // Kerää dataa liikesensorilta ja tulkitsee liikekomennot
+        // Collects data from movement-sensor and recognizes movement commands
         while (1) {}
 
     }
 
     void morseTask(void *pvParameters) {
         // Muuttaa raakadatan morse-merkeiksi
+        // transforms raw data to morse symbols
         while (1) {
 
         }
 
     }
 
-    void receiveTask(void *pvParameters) {
+    void transmitTask(void *pvParameters) {
         // Lähettää morsekoodin tietokoneelle
+        // Sends morse-code to the computer using USB
         while (1) {
 
         }
@@ -81,6 +84,7 @@ int main() {
 
     void receiveTask(void *pvParameters) {
         // Vastaanottaa morseviestin tietokoneelta
+        // Receives morse-code message from the computer using USB
         while (1) {
 
         }
@@ -88,6 +92,7 @@ int main() {
 
     void displayTask(void *pvParameters) {
         // Näyttää vastaanotetun tekstin näytöllä
+        // Displays the received message on the screen
         while (1) {
             if (programState == UPDATE_LCD){
 
@@ -97,8 +102,5 @@ int main() {
             }
         }
     }
-
-
-
 }
 
