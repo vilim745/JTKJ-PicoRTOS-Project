@@ -60,23 +60,28 @@ int main() {
 
     void sensorTask() {
         // Kerää dataa liikesensorilta ja tulkitsee liikekomennot
-
+        // Collects data from movement-sensor and recognizes movement commands
     }
 
     void morseTask() {
         // Muuttaa raakadatan morse-merkeiksi
+        // transforms raw data to morse-code
     }
 
-    void receiveTask() {
+    void transmitTask() {
         // Lähettää morsekoodin tietokoneelle
+        // Sends morse-code to the computer using USB
     }
 
     void receiveTask() {
         // Vastaanottaa morseviestin tietokoneelta
+        // Receives morse-code message from the computer using USB
     }
 
     void displayTask() {
         // Näyttää vastaanotetun tekstin näytöllä
+        // Displays the received message on the screen
+
     }
 
 
