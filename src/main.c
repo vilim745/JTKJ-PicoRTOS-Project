@@ -27,17 +27,6 @@ enum state
 };
 enum state programState = IDLE;
 
-static void example_task(void *arg)
-{
-    (void)arg;
-
-    for (;;)
-    {
-        tight_loop_contents(); // Modify with application code here.
-        vTaskDelay(pdMS_TO_TICKS(2000));
-    }
-}
-
 
 void sensorTask(void *pvParameters)
 {
@@ -45,7 +34,20 @@ void sensorTask(void *pvParameters)
     // Collects data from movement-sensor and recognizes movement commands
     while (1)
     {
-        vTaskDelay(pdMS_TO_TICKS(2000));
+        if (programState == IDLE) {
+            programState = READ_SENSOR;
+        }
+
+        if (programState == READ_SENSOR) {
+            // Reads sensor data, detects the orientation and checks if button pressed.
+            
+            if (/*Button pressed*/) {
+                // Save orientation and the corresponding symbol (Dash or dot)
+
+                programState = DATA_READY;
+            }
+        }
+        vTaskDelay(pdMS_TO_TICKS(20));
     }
 }
 
