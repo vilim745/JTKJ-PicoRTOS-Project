@@ -25,6 +25,15 @@ enum state
     NEW_MSG,
     UPDATE_LCD
 };
+
+enum orientation {
+    NONE,
+    HORIZONTAL,
+    VERTICAL
+};
+
+enum orientation currentOrientation = NONE;
+
 enum state programState = IDLE;
 
 struct sensor_data {
@@ -183,7 +192,7 @@ int main()
     TaskHandle_t hDisplayTask = NULL;
     TaskHandle_t hImuTask = NULL;
 
-    
+
 
     if(xTaskCreate(sensorTask, "Sensor", DEFAULT_STACK_SIZE, NULL, 2, &hSensorTask)) != pdPASS {
         printf("Sensor Task creation failed\n");
