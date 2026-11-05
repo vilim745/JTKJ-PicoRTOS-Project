@@ -58,27 +58,32 @@ int main() {
     return 0;
 
 
-    void sensorTask() {
+    void sensorTask(void *pvParameters) {
         // Kerää dataa liikesensorilta ja tulkitsee liikekomennot
 
     }
 
-    void morseTask() {
+    void morseTask(void *pvParameters) {
         // Muuttaa raakadatan morse-merkeiksi
     }
 
-    void receiveTask() {
+    void receiveTask(void *pvParameters) {
         // Lähettää morsekoodin tietokoneelle
     }
 
-    void receiveTask() {
+    void receiveTask(void *pvParameters) {
         // Vastaanottaa morseviestin tietokoneelta
     }
 
-    void displayTask() {
+    void displayTask(void *pvParameters) {
         // Näyttää vastaanotetun tekstin näytöllä
         while (1) {
-            if ()
+            if (programState == UPDATE_LCD){
+
+                update_screen();
+
+                programState = IDLE;
+            }
         }
     }
 
