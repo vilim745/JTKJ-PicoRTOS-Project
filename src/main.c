@@ -26,25 +26,10 @@ enum state
     UPDATE_LCD
 };
 
-enum orientation {
-    NONE,
-    HORIZONTAL,
-    VERTICAL
-};
-
-enum orientation currentOrientation = NONE;
 
 enum state programState = IDLE;
 
-struct sensor_data {
-    float ax;
-    float ay;
-    float az;
-    float gx;
-    float gy;
-    float gz;
-    float t;
-};
+char morse_code[100] = "";
 
 
 void sensorTask(void *pvParameters)
@@ -57,7 +42,7 @@ void sensorTask(void *pvParameters)
     // Setting up the sensor. 
     if (init_ICM42670() == 0) {
         printf("ICM-42670P initialized successfully!\n");
-        if (ICM42670_start_with_default_values() != 0){
+        if (ICM42670_start_with_default_values() != 0) {
             printf("ICM-42670P could not initialize accelerometer or gyroscope");
         }
 
@@ -71,48 +56,43 @@ void sensorTask(void *pvParameters)
     {
         if (programState == READ_SENSOR) {
             // Reads sensor data, detects the orientation and checks if button pressed.
-            
-            if (/*left Button pressed*/) {
 
                 if (ICM42670_read_sensor_data(&ax, &ay, &az, &gx, &gy, &gz, &t) == 0) {
-                struct sensor_data data;
-                data.ax = ax;
-                data.ay = ay;
-                data.az = az;
-                data.gx = gx;
-                data.gy = gy;
-                data.gz = gz;
-                data.t = t;
+            
+                // printf("Accel: X=%f, Y=%f, Z=%f | Gyro: X=%f, Y=%f, Z=%f| Temp: %2.2f°C\n", ax, ay, az, gx, gy, gz, t);
+                // printf("Gyro: X=%f, Y=%f, Z=%f\n",gx, gy, gz);
 
-            printf("Accel: X=%f, Y=%f, Z=%f | Gyro: X=%f, Y=%f, Z=%f| Temp: %2.2f°C\n"
-                , ax, ay, az, gx, gy, gz, t);
-    
+                if (gx > 200.0f) {
+                    printf("VÄLILYÖNTI\n");
+                    if (strlen(morse_code) < sizeof(morse_code) - 1) {
+                        strcat(morse_code, " ");
+                    }
+                    sleep_ms(500);
+                }
+
+                else if (fabs(gz) > 200.0f) {
+                    if (gz > 0) {
+                        printf("VASEN (PISTE)\n");
+                        if (strlen(morse_code) < sizeof(morse_code) - 1) {
+                            strcat(morse_code, ".");
+                        }
+                        sleep_ms(500);
+                    }
+                    else {
+                        printf("OIKEA (VIIVA)\n");
+                        if (strlen(morse_code) < sizeof(morse_code) - 1) {
+                            strcat(morse_code, "-");
+                        }
+                        sleep_ms(500);
+                    }
+                }
             } else {
                 printf("Failed to read imu data\n");
             }
-
-                vTaskDelay(pdMS_TO_TICKS(500));
-                        programState = DATA_READY;
-                    }
-                }
-
-        vTaskDelay(pdMS_TO_TICKS(200));
+            vTaskDelay(pdMS_TO_TICKS(100));
+        }
     }
 }
-
-void morseTask(void *pvParameters)
-{
-    (void)pvParameters;
-    // Muuttaa raakadatan morse-merkeiksi
-    // transforms raw data to morse symbols
-    while (1)
-    {
-        receive_Data();
-        vTaskDelay(pdMS_TO_TICKS(2000));
-    }
-}
-
-
 
 void transmitTask(void *pvParameters)
 {

@@ -1,6 +1,7 @@
 
 #include <stdio.h>
 #include <pico/stdlib.h>
+#include <stdlib.h>
 
 #include <FreeRTOS.h>
 #include <queue.h>
@@ -34,15 +35,39 @@ void imu_task(void *pvParameters) {
     {
         if (ICM42670_read_sensor_data(&ax, &ay, &az, &gx, &gy, &gz, &t) == 0) {
             
-            printf("Accel: X=%f, Y=%f, Z=%f | Gyro: X=%f, Y=%f, Z=%f| Temp: %2.2f°C\n", ax, ay, az, gx, gy, gz, t);
+            // printf("Accel: X=%f, Y=%f, Z=%f | Gyro: X=%f, Y=%f, Z=%f| Temp: %2.2f°C\n", ax, ay, az, gx, gy, gz, t);
+            // printf("Gyro: X=%f, Y=%f, Z=%f\n",gx, gy, gz);
+            char morse_code[100] = "";
+
+            if (gx > 200.0f) {
+                printf("VÄLILYÖNTI\n");
+                strcat(morse_code, " ");
+                sleep_ms(500);
+            }
+
+            else if (abs(gz) > 200.0f) {
+                if (gz > 0) {
+                    printf("VASEN (PISTE)\n");
+                    strcat(morse_code, ".");
+                    sleep_ms(500);
+                }
+                else {
+                    printf("OIKEA (VIIVA)\n");
+                    strcat(morse_code, "-");
+                    sleep_ms(500);
+                }
+
+            }
+            
 
         } else {
             printf("Failed to read imu data\n");
         }
-        vTaskDelay(pdMS_TO_TICKS(500));
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
-
 }
+
+
 
 int main() {
     stdio_init_all();
