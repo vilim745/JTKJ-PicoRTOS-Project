@@ -44,7 +44,7 @@ struct sensor_data {
     float gy;
     float gz;
     float t;
-}
+};
 
 
 void sensorTask(void *pvParameters)
@@ -71,7 +71,7 @@ void sensorTask(void *pvParameters)
     }
 }
 
-void read_data() {
+void read_data(void) {
 
     float ax, ay, az, gx, gy, gz, t;
     // Setting up the sensor. 
@@ -96,13 +96,14 @@ void read_data() {
             
             //printf("Accel: X=%f, Y=%f, Z=%f | Gyro: X=%f, Y=%f, Z=%f| Temp: %2.2f°C\n", ax, ay, az, gx, gy, gz, t);
             
-            struct sensor_data data.ax = ax;
-            struct sensor_data data.ay = ay;
-            struct sensor_data data.az = az;
-            struct sensor_data data.gx = gx;
-            struct sensor_data data.gy = gy;
-            struct sensor_data data.gz = gz;
-            struct sensor_data data.t = t;
+            struct sensor_data data;
+            data.ax = ax;
+            data.ay = ay;
+            data.az = az;
+            data.gx = gx;
+            data.gy = gy;
+            data.gz = gz;
+            data.t = t;
             
 
         } else {
