@@ -13,7 +13,7 @@
 // Default stack size for the tasks. It can be reduced to 1024 if task is not using lot of memory.
 #define DEFAULT_STACK_SIZE 2048
 // #define DISPLAY_WIDTH
-// #define MSG_BUFFER
+#define MSG_BUFFER 100
 
 // Add here necessary states
 enum state
@@ -29,7 +29,7 @@ enum state
 
 enum state programState = IDLE;
 
-char morse_code[100] = "";
+char morse_code[MSG_BUFFER] = "";
 
 
 void sensorTask(void *pvParameters)
