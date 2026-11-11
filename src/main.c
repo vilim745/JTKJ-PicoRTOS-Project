@@ -54,9 +54,6 @@ void sensorTask(void *pvParameters)
     // Collects data from movement-sensor and recognizes movement commands
     while (1)
     {
-        if (programState == IDLE) {
-            programState = READ_SENSOR;
-        }
 
         if (programState == READ_SENSOR) {
             // Reads sensor data, detects the orientation and checks if button pressed.
@@ -67,7 +64,7 @@ void sensorTask(void *pvParameters)
                 programState = DATA_READY;
             }
         }
-        vTaskDelay(pdMS_TO_TICKS(20));
+        vTaskDelay(pdMS_TO_TICKS(200));
     }
 }
 
@@ -80,12 +77,7 @@ void read_data(void) {
         if (ICM42670_start_with_default_values() != 0){
             printf("ICM-42670P could not initialize accelerometer or gyroscope");
         }
-        /*int _enablegyro = ICM42670_enable_accel_gyro_ln_mode();
-        printf ("Enable gyro: %d\n",_enablegyro);
-        int _gyro = ICM42670_startGyro(ICM42670_GYRO_ODR_DEFAULT, ICM42670_GYRO_FSR_DEFAULT);
-        printf ("Gyro return:  %d\n", _gyro);
-        int _accel = ICM42670_startAccel(ICM42670_ACCEL_ODR_DEFAULT, ICM42670_ACCEL_FSR_DEFAULT);
-        printf ("Accel return:  %d\n", _accel);*/
+
     } else {
         printf("Failed to initialize ICM-42670P.\n");
     }
@@ -93,8 +85,6 @@ void read_data(void) {
     while (1)
     {
         if (ICM42670_read_sensor_data(&ax, &ay, &az, &gx, &gy, &gz, &t) == 0) {
-            
-            //printf("Accel: X=%f, Y=%f, Z=%f | Gyro: X=%f, Y=%f, Z=%f| Temp: %2.2f°C\n", ax, ay, az, gx, gy, gz, t);
             
             struct sensor_data data;
             data.ax = ax;
@@ -104,14 +94,15 @@ void read_data(void) {
             data.gy = gy;
             data.gz = gz;
             data.t = t;
-            
 
+            printf("Accel: X=%f, Y=%f, Z=%f | Gyro: X=%f, Y=%f, Z=%f| Temp: %2.2f°C\n"
+                , ax, ay, az, gx, gy, gz, t);
+    
         } else {
             printf("Failed to read imu data\n");
         }
         vTaskDelay(pdMS_TO_TICKS(500));
     }
-
 }
 
 void morseTask(void *pvParameters)
@@ -176,7 +167,7 @@ void displayTask(void *pvParameters)
 
 
 
-int main()
+int main(void)
 {
     stdio_init_all();
     // Uncomment this lines if you want to wait till the serial monitor is connected
