@@ -52,23 +52,6 @@ void sensorTask(void *pvParameters)
     (void)pvParameters;
     // Kerää dataa liikesensorilta ja tulkitsee liikekomennot
     // Collects data from movement-sensor and recognizes movement commands
-    while (1)
-    {
-
-        if (programState == READ_SENSOR) {
-            // Reads sensor data, detects the orientation and checks if button pressed.
-            read_data();
-            if (/*Button pressed*/) {
-                // Save orientation and the corresponding symbol (Dash or dot)
-
-                programState = DATA_READY;
-            }
-        }
-        vTaskDelay(pdMS_TO_TICKS(200));
-    }
-}
-
-void read_data(void) {
 
     float ax, ay, az, gx, gy, gz, t;
     // Setting up the sensor. 
@@ -81,27 +64,39 @@ void read_data(void) {
     } else {
         printf("Failed to initialize ICM-42670P.\n");
     }
+
+
     // Start collection data here. Infinite loop. 
     while (1)
     {
-        if (ICM42670_read_sensor_data(&ax, &ay, &az, &gx, &gy, &gz, &t) == 0) {
+        if (programState == READ_SENSOR) {
+            // Reads sensor data, detects the orientation and checks if button pressed.
             
-            struct sensor_data data;
-            data.ax = ax;
-            data.ay = ay;
-            data.az = az;
-            data.gx = gx;
-            data.gy = gy;
-            data.gz = gz;
-            data.t = t;
+            if (/*left Button pressed*/) {
+
+                if (ICM42670_read_sensor_data(&ax, &ay, &az, &gx, &gy, &gz, &t) == 0) {
+                struct sensor_data data;
+                data.ax = ax;
+                data.ay = ay;
+                data.az = az;
+                data.gx = gx;
+                data.gy = gy;
+                data.gz = gz;
+                data.t = t;
 
             printf("Accel: X=%f, Y=%f, Z=%f | Gyro: X=%f, Y=%f, Z=%f| Temp: %2.2f°C\n"
                 , ax, ay, az, gx, gy, gz, t);
     
-        } else {
-            printf("Failed to read imu data\n");
-        }
-        vTaskDelay(pdMS_TO_TICKS(500));
+            } else {
+                printf("Failed to read imu data\n");
+            }
+
+                vTaskDelay(pdMS_TO_TICKS(500));
+                        programState = DATA_READY;
+                    }
+                }
+
+        vTaskDelay(pdMS_TO_TICKS(200));
     }
 }
 
