@@ -29,9 +29,9 @@ enum state
 };
 
 
-enum state programState = IDLE;
-
+enum state programState = READ_SENSOR; 
 char morse_code[100] = "";
+bool last_morse_was_space = false;
 
 
 void sensorTask(void *pvParameters)
@@ -57,6 +57,7 @@ void sensorTask(void *pvParameters)
     while (1)
     {
         if (programState == READ_SENSOR) {
+            
             // Reads sensor data, detects the orientation and checks if button pressed.
 
                 if (ICM42670_read_sensor_data(&ax, &ay, &az, &gx, &gy, &gz, &t) == 0) {
@@ -66,14 +67,19 @@ void sensorTask(void *pvParameters)
 
                 if (gx > 200.0f) {
                     printf("VÄLILYÖNTI\n");
+                    if (last_morse_was_space) {
+                        programState = MSG_READY;
+                    }
                     if (strlen(morse_code) < sizeof(morse_code) - 1) {
                         strcat(morse_code, " ");
                     }
                     printf("Morse code: %s\n", morse_code);
                     sleep_ms(500);
+                    last_morse_was_space = true;
                 }
 
                 else if (fabs(gz) > 200.0f) {
+                    last_morse_was_space = false;
                     if (gz > 0) {
                         printf("VASEN (PISTE)\n");
                         if (strlen(morse_code) < sizeof(morse_code) - 1) {
@@ -101,12 +107,17 @@ void sensorTask(void *pvParameters)
 
 void transmitTask(void *pvParameters)
 {
-    (void)pvParameters;
     // Lähettää morsekoodin tietokoneelle
     // Sends morse-code to the computer using USB
-    while (1)
-    {
-        vTaskDelay(pdMS_TO_TICKS(2000));
+    (void)pvParameters;
+
+    if (programState == MSG_READY) {
+        printf("Morse code ready: %s\n", morse_code);
+        
+        while (1)
+        {
+            vTaskDelay(pdMS_TO_TICKS(2000));
+        }
     }
 }
 
@@ -134,7 +145,7 @@ void displayTask(void *pvParameters)
             void init_display(void);
             char text[] = ":)";
             void write_text(const char *text);
-            update_screen();
+            // update_screen();
 
             programState = IDLE;
         }
