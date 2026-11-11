@@ -1,6 +1,8 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+#include <math.h>
 
 #include <pico/stdlib.h>
 
@@ -27,9 +29,9 @@ enum state
 };
 
 
-enum state programState = IDLE;
-
+enum state programState = READ_SENSOR; 
 char morse_code[MSG_BUFFER] = "";
+bool last_morse_was_space = false;
 
 
 void sensorTask(void *pvParameters)
@@ -55,6 +57,7 @@ void sensorTask(void *pvParameters)
     while (1)
     {
         if (programState == READ_SENSOR) {
+            
             // Reads sensor data, detects the orientation and checks if button pressed.
 
                 if (ICM42670_read_sensor_data(&ax, &ay, &az, &gx, &gy, &gz, &t) == 0) {
@@ -64,18 +67,25 @@ void sensorTask(void *pvParameters)
 
                 if (gx > 200.0f) {
                     printf("VÄLILYÖNTI\n");
+                    if (last_morse_was_space) {
+                        programState = MSG_READY;
+                    }
                     if (strlen(morse_code) < sizeof(morse_code) - 1) {
                         strcat(morse_code, " ");
                     }
+                    printf("Morse code: %s\n", morse_code);
                     sleep_ms(500);
+                    last_morse_was_space = true;
                 }
 
                 else if (fabs(gz) > 200.0f) {
+                    last_morse_was_space = false;
                     if (gz > 0) {
                         printf("VASEN (PISTE)\n");
                         if (strlen(morse_code) < sizeof(morse_code) - 1) {
                             strcat(morse_code, ".");
                         }
+                        printf("Morse code: %s\n", morse_code);
                         sleep_ms(500);
                     }
                     else {
@@ -83,6 +93,7 @@ void sensorTask(void *pvParameters)
                         if (strlen(morse_code) < sizeof(morse_code) - 1) {
                             strcat(morse_code, "-");
                         }
+                        printf("Morse code: %s\n", morse_code);
                         sleep_ms(500);
                     }
                 }
@@ -96,12 +107,17 @@ void sensorTask(void *pvParameters)
 
 void transmitTask(void *pvParameters)
 {
-    (void)pvParameters;
     // Lähettää morsekoodin tietokoneelle
     // Sends morse-code to the computer using USB
-    while (1)
-    {
-        vTaskDelay(pdMS_TO_TICKS(2000));
+    (void)pvParameters;
+
+    if (programState == MSG_READY) {
+        printf("Morse code ready: %s\n", morse_code);
+        
+        while (1)
+        {
+            vTaskDelay(pdMS_TO_TICKS(2000));
+        }
     }
 }
 
@@ -129,7 +145,7 @@ void displayTask(void *pvParameters)
             void init_display(void);
             char text[] = ":)";
             void write_text(const char *text);
-            update_screen();
+            // update_screen();
 
             programState = IDLE;
         }
@@ -153,36 +169,29 @@ int main(void)
     sleep_ms(300); // Wait some time so initialization of USB and hat is done.
 
     TaskHandle_t hSensorTask = NULL;
-    TaskHandle_t hMorseTask = NULL;
     TaskHandle_t hTransmitTask = NULL;
     TaskHandle_t hReceiveTask = NULL;
     TaskHandle_t hDisplayTask = NULL;
-    TaskHandle_t hImuTask = NULL;
 
 
 
-    if(xTaskCreate(sensorTask, "Sensor", DEFAULT_STACK_SIZE, NULL, 2, &hSensorTask)) != pdPASS {
+
+    if (xTaskCreate(sensorTask, "Sensor", DEFAULT_STACK_SIZE, NULL, 2, &hSensorTask) != pdPASS) {
         printf("Sensor Task creation failed\n");
         return 0;
     };
-
-    if(xTaskCreate(morseTask, "Morse", DEFAULT_STACK_SIZE, NULL, 2, &hMorseTask)) != pdPASS {
-        printf("Morse Task creation failed\n");
-        return 0;
-    };
-
-    if(xTaskCreate(transmitTask, "Transmit", DEFAULT_STACK_SIZE, NULL, 2, &hTransmitTask)) != pdPASS {
+    if( xTaskCreate(transmitTask, "Transmit", DEFAULT_STACK_SIZE, NULL, 2, &hTransmitTask) != pdPASS) {
         printf("Transmit Task creation failed\n");
         return 0
         ;
     };
 
-    if(xTaskCreate(receiveTask, "Receive", DEFAULT_STACK_SIZE, NULL, 2, &hReceiveTask)) != pdPASS {
+    if (xTaskCreate(receiveTask, "Receive", DEFAULT_STACK_SIZE, NULL, 2, &hReceiveTask) != pdPASS) {
         printf("Receive Task creation failed\n");
         return 0;
     };
 
-    if(xTaskCreate(displayTask, "Display", DEFAULT_STACK_SIZE, NULL, 2, &hDisplayTask)) != pdPASS {
+    if (xTaskCreate(displayTask, "Display", DEFAULT_STACK_SIZE, NULL, 2, &hDisplayTask) != pdPASS) {
         printf("Display Task creation failed\n");
         return 0;
     };
