@@ -29,7 +29,7 @@ enum state
 };
 
 
-enum state programState = READ_SENSOR; 
+enum state programState = IDLE; 
 char morse_code[MSG_BUFFER] = "";
 bool last_morse_was_space = false;
 
