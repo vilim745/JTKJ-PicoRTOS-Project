@@ -76,7 +76,7 @@ ${CMAKE_CURRENT_LIST_DIR}/config
 # Add librabries. The TKJHAT does not use libraries from FreeRTOS
 add_subdirectory(libs/TKJHAT)
 # Support for usb serial communication
-add_subdirectory(libs/usb-serial-debug)
+# add_subdirectory(libs/usb-serial-debug)
 # If created new libraries, include them here. 
 # You can EDIT it if you add new libraries
 # ===============================================================================================
