@@ -1,6 +1,8 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+#include <math.h>
 
 #include <pico/stdlib.h>
 
@@ -67,6 +69,7 @@ void sensorTask(void *pvParameters)
                     if (strlen(morse_code) < sizeof(morse_code) - 1) {
                         strcat(morse_code, " ");
                     }
+                    printf("Morse code: %s\n", morse_code);
                     sleep_ms(500);
                 }
 
@@ -76,6 +79,7 @@ void sensorTask(void *pvParameters)
                         if (strlen(morse_code) < sizeof(morse_code) - 1) {
                             strcat(morse_code, ".");
                         }
+                        printf("Morse code: %s\n", morse_code);
                         sleep_ms(500);
                     }
                     else {
@@ -83,6 +87,7 @@ void sensorTask(void *pvParameters)
                         if (strlen(morse_code) < sizeof(morse_code) - 1) {
                             strcat(morse_code, "-");
                         }
+                        printf("Morse code: %s\n", morse_code);
                         sleep_ms(500);
                     }
                 }
@@ -153,36 +158,29 @@ int main(void)
     sleep_ms(300); // Wait some time so initialization of USB and hat is done.
 
     TaskHandle_t hSensorTask = NULL;
-    TaskHandle_t hMorseTask = NULL;
     TaskHandle_t hTransmitTask = NULL;
     TaskHandle_t hReceiveTask = NULL;
     TaskHandle_t hDisplayTask = NULL;
-    TaskHandle_t hImuTask = NULL;
 
 
 
-    if(xTaskCreate(sensorTask, "Sensor", DEFAULT_STACK_SIZE, NULL, 2, &hSensorTask)) != pdPASS {
+
+    if (xTaskCreate(sensorTask, "Sensor", DEFAULT_STACK_SIZE, NULL, 2, &hSensorTask) != pdPASS) {
         printf("Sensor Task creation failed\n");
         return 0;
     };
-
-    if(xTaskCreate(morseTask, "Morse", DEFAULT_STACK_SIZE, NULL, 2, &hMorseTask)) != pdPASS {
-        printf("Morse Task creation failed\n");
-        return 0;
-    };
-
-    if(xTaskCreate(transmitTask, "Transmit", DEFAULT_STACK_SIZE, NULL, 2, &hTransmitTask)) != pdPASS {
+    if( xTaskCreate(transmitTask, "Transmit", DEFAULT_STACK_SIZE, NULL, 2, &hTransmitTask) != pdPASS) {
         printf("Transmit Task creation failed\n");
         return 0
         ;
     };
 
-    if(xTaskCreate(receiveTask, "Receive", DEFAULT_STACK_SIZE, NULL, 2, &hReceiveTask)) != pdPASS {
+    if (xTaskCreate(receiveTask, "Receive", DEFAULT_STACK_SIZE, NULL, 2, &hReceiveTask) != pdPASS) {
         printf("Receive Task creation failed\n");
         return 0;
     };
 
-    if(xTaskCreate(displayTask, "Display", DEFAULT_STACK_SIZE, NULL, 2, &hDisplayTask)) != pdPASS {
+    if (xTaskCreate(displayTask, "Display", DEFAULT_STACK_SIZE, NULL, 2, &hDisplayTask) != pdPASS) {
         printf("Display Task creation failed\n");
         return 0;
     };
