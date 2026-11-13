@@ -55,7 +55,6 @@ void clkFxn(void *pvParameters) {
         vTaskDelay(pdMS_TO_TICKS(500));
     }
 }
-
 void sensorTask(void *pvParameters)
 {
     // Kerää dataa liikesensorilta ja tulkitsee liikekomennot
@@ -83,9 +82,6 @@ void sensorTask(void *pvParameters)
             // Reads sensor data, detects the orientation and checks if button pressed.
 
                 if (ICM42670_read_sensor_data(&ax, &ay, &az, &gx, &gy, &gz, &t) == 0) {
-            
-                // printf("Accel: X=%f, Y=%f, Z=%f | Gyro: X=%f, Y=%f, Z=%f| Temp: %2.2f°C\n", ax, ay, az, gx, gy, gz, t);
-                // printf("Gyro: X=%f, Y=%f, Z=%f\n",gx, gy, gz);
 
                 if (gx > 200.0f) {
                     printf("VÄLILYÖNTI\n");
@@ -99,7 +95,7 @@ void sensorTask(void *pvParameters)
                     } else {
                         printf("Morse code buffer full, cannot add space\n");
                     }
-                    sleep_ms(500);
+                    vTaskDelay(pdMS_TO_TICKS(500));
                     
                 }
 
@@ -113,7 +109,7 @@ void sensorTask(void *pvParameters)
                         } else {
                             printf("Morse code buffer full, cannot add dot\n");
                         }
-                        sleep_ms(500);
+                        vTaskDelay(pdMS_TO_TICKS(500));
                     }
                     else {
                         printf("OIKEA (VIIVA)\n");
@@ -123,7 +119,7 @@ void sensorTask(void *pvParameters)
                         } else {
                             printf("Morse code buffer full, cannot add dash\n");
                         }
-                        sleep_ms(500);
+                        vTaskDelay(pdMS_TO_TICKS(500));
                     }
                 }
             } else {
@@ -156,11 +152,13 @@ void transmitTask(void *pvParameters)
                 snprintf(buf, MSG_BUFFER, "%s\n", morse_code);
                 tud_cdc_n_write(CDC_ITF_DATA, buf, strlen(buf));
                 tud_cdc_n_write_flush(CDC_ITF_DATA);
+                printf("Message sent\n");
                 }
-            // morse_code[0] = '\0';
-            // programState = IDLE;
-            vTaskDelay(pdMS_TO_TICKS(2000));
+            morse_code[0] = '\0';
+            programState = IDLE;
+            vTaskDelay(pdMS_TO_TICKS(500));
         }
+        
     }
 }
 
