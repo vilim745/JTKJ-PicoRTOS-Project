@@ -28,7 +28,7 @@ enum state
 };
 
 
-enum state programState = IDLE; 
+enum state programState = NEW_MSG; 
 
 // Array for morse code from sensor
 char morse_code[MSG_BUFFER] = "";
@@ -166,18 +166,14 @@ void receiveTask(void *pvParameters)
 
             int ch = getchar_timeout_us(10); 
             if (ch >= 0) {
+                putchar_raw((char)ch);           // kaiku: lähetä takaisin tismalleen mitä saatiin
 
-            putchar_raw((char)ch);           // kaiku: lähetä takaisin tismalleen mitä saatiin
-
-            if (ch == '\n') {
-                received_code[index] = '\0';
-                programState = UPDATE_OLED;
-                index = 0;
-                }
-
-
-            else if (index <= MSG_BUFFER) {
-                received_code[index++] = (char)ch; 
+                if (ch == '\n' || ch == '\r') {
+                    received_code[index] = '\0';
+                    programState = UPDATE_OLED;
+                    index = 0;
+                    } else if (index <= MSG_BUFFER) {
+                        received_code[index++] = (char)ch; 
                 }
             }
         }
