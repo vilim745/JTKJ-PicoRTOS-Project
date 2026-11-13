@@ -22,7 +22,6 @@ enum state
 {
     IDLE = 1,
     READ_SENSOR,
-    DATA_READY,
     MSG_READY,
     NEW_MSG,
     UPDATE_OLED
