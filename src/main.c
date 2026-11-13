@@ -145,6 +145,7 @@ void transmitTask(void *pvParameters)
             if (programState == MSG_READY) {
                 printf("Morse code ready: %s\n", morse_code);
             
+            morse_code[0] = '\0';
             programState = IDLE;
             vTaskDelay(pdMS_TO_TICKS(2000));
         }
