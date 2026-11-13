@@ -137,12 +137,18 @@ void transmitTask(void *pvParameters)
     // Lähettää morsekoodin tietokoneelle
     // Sends morse-code to the computer using USB
     (void)pvParameters;
- 
+
+    if (programState == MSG_READY) {
+        printf("Morse code ready: %s\n", morse_code);
+        
         while (1)
         {
             if (programState == MSG_READY) {
                 printf("Morse code ready: %s\n", morse_code);
 
+            if (programState == MSG_READY) {
+            printf("Morse code ready: %s\n", morse_code);
+            
             programState = IDLE;
             vTaskDelay(pdMS_TO_TICKS(2000));
         }
@@ -200,7 +206,7 @@ void displayTask(void *pvParameters)
         if (programState == UPDATE_OLED)
             {
             /*
-            void write_text(received_code);
+            write_text(received_code);
             received_code[0] = '\0';
             programState = IDLE;
             */
