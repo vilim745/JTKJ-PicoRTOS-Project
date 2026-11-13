@@ -28,7 +28,7 @@ enum state
 };
 
 
-enum state programState = NEW_MSG; 
+enum state programState = IDLE;
 
 // Array for morse code from sensor
 char morse_code[MSG_BUFFER] = "";
@@ -42,10 +42,9 @@ void clkFxn(void *pvParameters) {
     (void)pvParameters;
 
     while (1) {
-        /*
-        if (programState == IDLE && is_message_waiting()) {
+        if (programState == IDLE && getchar_timeout_us(10) >= 0) {
             programState = NEW_MSG;
-        } else */ if (programState == IDLE && gpio_get(SW2_PIN) == 1) {
+        } else if (programState == IDLE && gpio_get(SW2_PIN) == 1) {
             printf("Button pressed, starting to read sensor data\n");
             programState = READ_SENSOR;
         }
@@ -163,12 +162,11 @@ void receiveTask(void *pvParameters)
     while (1)
     {
         if (programState == NEW_MSG) {
-
             int ch = getchar_timeout_us(10); 
             if (ch >= 0) {
-                putchar_raw((char)ch);           // kaiku: lähetä takaisin tismalleen mitä saatiin
+                putchar((char)ch);           // kaiku: lähetä takaisin tismalleen mitä saatiin
 
-                if (ch == '\n' || ch == '\r') {
+                if (ch == '\n') {
                     received_code[index] = '\0';
                     programState = UPDATE_OLED;
                     index = 0;
@@ -190,19 +188,31 @@ void displayTask(void *pvParameters)
     (void)pvParameters;
 
         init_display();
-            printf("Initializing the display task\n");
+        printf("Initializing the display task\n");
 
 
 
     while (1)
     {
+        char display_text[MSG_BUFFER] = "";
         if (programState == UPDATE_OLED)
             {
-            /*
-            write_text(received_code);
+            printf("Received morse code: %s\n", received_code);
+            for (int i = 0; received_code[i] != '\0'; i++) {
+                if (received_code[i] == ' ') {
+                    display_text[i] = '\0';
+                    write_text(display_text);
+                    sleep_ms(500);
+                    display_text[0] = '\0';
+                }
+                strcat(display_text, &received_code[i]);
+            }
+            
+            
+            clear_display();
             received_code[0] = '\0';
             programState = IDLE;
-            */
+
         }
 
         vTaskDelay(pdMS_TO_TICKS(200));
