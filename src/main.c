@@ -38,6 +38,20 @@ char received_code[MSG_BUFFER] = "";
 
 bool last_morse_was_space = false;
 
+void clkFxn(void *pvParameters) {
+    (void)pvParameters;
+
+    while (1) {
+        /*
+        if (programState == IDLE && is_message_waiting()) {
+            programState = NEW_MSG;
+        } else */ if (programState == IDLE && gpio_get(SW1_PIN) == 1) {
+            programState = READ_SENSOR;
+        }
+        
+        vTaskDelay(pdMS_TO_TICKS(500));
+    }
+}
 
 void sensorTask(void *pvParameters)
 {
@@ -178,9 +192,11 @@ void displayTask(void *pvParameters)
     {
         if (programState == UPDATE_OLED)
             {
+            /*
             void write_text(received_code);
             received_code[0] = '\0';
             programState = IDLE;
+            */
         }
 
         vTaskDelay(pdMS_TO_TICKS(200));
@@ -205,9 +221,13 @@ int main(void)
     TaskHandle_t hTransmitTask = NULL;
     TaskHandle_t hReceiveTask = NULL;
     TaskHandle_t hDisplayTask = NULL;
+    TaskHandle_t hClkFxn = NULL;
 
 
-
+    if (xTaskCreate(clkFxn, "clkFxn", DEFAULT_STACK_SIZE, NULL, 1, &hClkFxn) != pdPASS) {
+        printf("Clock Task creation failed\n");
+        return 0;
+    };
 
     if (xTaskCreate(sensorTask, "Sensor", DEFAULT_STACK_SIZE, NULL, 2, &hSensorTask) != pdPASS) {
         printf("Sensor Task creation failed\n");
