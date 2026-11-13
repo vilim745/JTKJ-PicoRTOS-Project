@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include <hardware/i2c.h>
+
 #include <pico/stdlib.h>
 
 #include <FreeRTOS.h>
@@ -30,7 +32,13 @@ enum state
 
 
 enum state programState = IDLE; 
+
+// Array for morse code from sensor
 char morse_code[MSG_BUFFER] = "";
+
+// Array for morse code from received computer
+char received_code[MSG_BUFFER] = "";
+
 bool last_morse_was_space = false;
 
 
@@ -102,6 +110,7 @@ void sensorTask(void *pvParameters)
             }
             vTaskDelay(pdMS_TO_TICKS(100));
         }
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 
@@ -128,6 +137,7 @@ void receiveTask(void *pvParameters)
     // Receives morse-code message from the computer using USB
     while (1)
     {
+        //received_code[] = "mock data from pc";
         vTaskDelay(pdMS_TO_TICKS(2000));
     }
 }
@@ -137,16 +147,17 @@ void displayTask(void *pvParameters)
     (void)pvParameters;
     // Näyttää vastaanotetun tekstin näytöllä
     // Displays the received message on the screen
+        init_display();
+            printf("Initializing the display task\n");
+
+
+
     while (1)
     {
-    
         if (programState == UPDATE_LCD)
-        {
-            void init_display(void);
-            char text[] = ":)";
-            void write_text(const char *text);
-            // update_screen();
-
+            {
+            void write_text(received_code);
+            received_code[] = '\0';
             programState = IDLE;
         }
 
@@ -180,6 +191,7 @@ int main(void)
         printf("Sensor Task creation failed\n");
         return 0;
     };
+
     if( xTaskCreate(transmitTask, "Transmit", DEFAULT_STACK_SIZE, NULL, 2, &hTransmitTask) != pdPASS) {
         printf("Transmit Task creation failed\n");
         return 0
