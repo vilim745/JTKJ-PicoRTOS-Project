@@ -45,7 +45,8 @@ void clkFxn(void *pvParameters) {
         /*
         if (programState == IDLE && is_message_waiting()) {
             programState = NEW_MSG;
-        } else */ if (programState == IDLE && gpio_get(SW1_PIN) == 1) {
+        } else */ if (programState == IDLE && gpio_get(SW2_PIN) == 1) {
+            printf("Button pressed, starting to read sensor data\n");
             programState = READ_SENSOR;
         }
         
@@ -88,13 +89,16 @@ void sensorTask(void *pvParameters)
                     printf("VÄLILYÖNTI\n");
                     if (last_morse_was_space) {
                         programState = MSG_READY;
-                    }
-                    if (strlen(morse_code) < sizeof(morse_code) - 1) {
+                        last_morse_was_space = false;
+                    } else if (strlen(morse_code) < sizeof(morse_code) - 1) {
                         strcat(morse_code, " ");
+                        printf("Morse code: %s\n", morse_code);
+                        last_morse_was_space = true;
+                    } else {
+                        printf("Morse code buffer full, cannot add space\n");
                     }
-                    printf("Morse code: %s\n", morse_code);
                     sleep_ms(500);
-                    last_morse_was_space = true;
+                    
                 }
 
                 else if (fabs(gz) > 200.0f) {
@@ -103,25 +107,28 @@ void sensorTask(void *pvParameters)
                         printf("VASEN (PISTE)\n");
                         if (strlen(morse_code) < sizeof(morse_code) - 1) {
                             strcat(morse_code, ".");
+                            printf("Morse code: %s\n", morse_code);
+                        } else {
+                            printf("Morse code buffer full, cannot add dot\n");
                         }
-                        printf("Morse code: %s\n", morse_code);
                         sleep_ms(500);
                     }
                     else {
                         printf("OIKEA (VIIVA)\n");
                         if (strlen(morse_code) < sizeof(morse_code) - 1) {
                             strcat(morse_code, "-");
+                            printf("Morse code: %s\n", morse_code);
+                        } else {
+                            printf("Morse code buffer full, cannot add dash\n");
                         }
-                        printf("Morse code: %s\n", morse_code);
                         sleep_ms(500);
                     }
                 }
             } else {
                 printf("Failed to read imu data\n");
             }
-            vTaskDelay(pdMS_TO_TICKS(100));
         }
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        vTaskDelay(pdMS_TO_TICKS(50));
     }
 }
 
@@ -131,9 +138,14 @@ void transmitTask(void *pvParameters)
     // Sends morse-code to the computer using USB
     (void)pvParameters;
 
-
+    if (programState == MSG_READY) {
+        printf("Morse code ready: %s\n", morse_code);
+        
         while (1)
         {
+            if (programState == MSG_READY) {
+                printf("Morse code ready: %s\n", morse_code);
+
             if (programState == MSG_READY) {
             printf("Morse code ready: %s\n", morse_code);
             
@@ -217,6 +229,7 @@ int main(void)
         sleep_ms(10);
     }*/
     init_hat_sdk();
+    init_sw2();
     sleep_ms(300); // Wait some time so initialization of USB and hat is done.
 
     TaskHandle_t hSensorTask = NULL;
