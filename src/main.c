@@ -25,7 +25,7 @@ enum state
     DATA_READY,
     MSG_READY,
     NEW_MSG,
-    UPDATE_LCD
+    UPDATE_OLED
 };
 
 
@@ -42,9 +42,9 @@ bool last_morse_was_space = false;
 
 void sensorTask(void *pvParameters)
 {
-    (void)pvParameters;
     // Kerää dataa liikesensorilta ja tulkitsee liikekomennot
     // Collects data from movement-sensor and recognizes movement commands
+    (void)pvParameters;
 
     float ax, ay, az, gx, gy, gz, t;
     // Setting up the sensor. 
@@ -130,21 +130,41 @@ void transmitTask(void *pvParameters)
 
 void receiveTask(void *pvParameters)
 {
-    (void)pvParameters;
     // Vastaanottaa morseviestin tietokoneelta
     // Receives morse-code message from the computer using USB
+
+    (void)pvParameters;
+    int index = 0;
+
     while (1)
     {
-        //received_code[] = "mock data from pc";
-        vTaskDelay(pdMS_TO_TICKS(2000));
+        if (programState == IDLE) {
+
+            int ch = getchar_timeout_us(10); 
+            if (ch >= 0) {
+
+            putchar_raw((char)ch);           // kaiku: lähetä takaisin tismalleen mitä saatiin
+                
+            if (index <= MSG_BUFFER) 
+                {
+                received_code[index++] = (char)ch; 
+                }
+            programState == UPDATE_OLED;
+        }
+        }
+
+
+        vTaskDelay(pdMS_TO_TICKS(200));
     }
 }
 
 void displayTask(void *pvParameters)
 {  
-    (void)pvParameters;
     // Näyttää vastaanotetun tekstin näytöllä
     // Displays the received message on the screen
+
+    (void)pvParameters;
+
         init_display();
             printf("Initializing the display task\n");
 
@@ -152,14 +172,14 @@ void displayTask(void *pvParameters)
 
     while (1)
     {
-        if (programState == UPDATE_LCD)
+        if (programState == UPDATE_OLED)
             {
             void write_text(received_code);
-            received_code[] = '\0';
+            received_code[0] = '\0';
             programState = IDLE;
         }
 
-        vTaskDelay(pdMS_TO_TICKS(2000));
+        vTaskDelay(pdMS_TO_TICKS(200));
     }
 
     
