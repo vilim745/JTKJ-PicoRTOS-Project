@@ -139,7 +139,7 @@ void receiveTask(void *pvParameters)
 
     while (1)
     {
-        if (programState == IDLE) {
+        if (programState == NEW_MSG) {
 
             int ch = getchar_timeout_us(10); 
             if (ch >= 0) {
