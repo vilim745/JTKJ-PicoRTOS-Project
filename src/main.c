@@ -4,8 +4,6 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include <hardware/i2c.h>
-
 #include <pico/stdlib.h>
 
 #include <FreeRTOS.h>
