@@ -123,6 +123,7 @@ void transmitTask(void *pvParameters)
         
         while (1)
         {
+            programState = IDLE;
             vTaskDelay(pdMS_TO_TICKS(2000));
         }
     }
@@ -144,15 +145,19 @@ void receiveTask(void *pvParameters)
             if (ch >= 0) {
 
             putchar_raw((char)ch);           // kaiku: lähetä takaisin tismalleen mitä saatiin
-                
-            if (index <= MSG_BUFFER) 
-                {
+
+            if (ch == '\n') {
+                received_code[index] = '\0';
+                programState = UPDATE_OLED;
+                index = 0;
+                }
+
+
+            else if (index <= MSG_BUFFER) {
                 received_code[index++] = (char)ch; 
                 }
-            programState == UPDATE_OLED;
+            }
         }
-        }
-
 
         vTaskDelay(pdMS_TO_TICKS(200));
     }
