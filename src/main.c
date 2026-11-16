@@ -88,6 +88,7 @@ void sensorTask(void *pvParameters)
                     if (last_morse_was_space) {
                         programState = MSG_READY;
                         last_morse_was_space = false;
+                        toggle_led();
                     } else if (strlen(morse_code) < sizeof(morse_code) - 1) {
                         strcat(morse_code, " ");
                         printf("Morse code: %s\n", morse_code);
