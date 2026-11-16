@@ -283,16 +283,15 @@ static void buzzerTask(void *arg) {
 
 int main(void)
 {
-    tusb_init();
-
     stdio_init_all();
     // Uncomment this lines if you want to wait till the serial monitor is connected
     /*while (!stdio_usb_connected()){
         sleep_ms(10);
     }*/
 
-    while (!tud_cdc_n_connected(0) || !tud_cdc_n_connected(1)){
+    while (!tud_cdc_n_connected(CDC_ITF_DATA)) {
         tud_task();
+        printf("Waiting for USB connection...\n");
         sleep_ms(10);
     }
     init_buzzer();
@@ -353,6 +352,7 @@ int main(void)
 
 
     // Start the scheduler (never returns)
+    tusb_init();
     vTaskStartScheduler();
 
     // Never reach this line.
