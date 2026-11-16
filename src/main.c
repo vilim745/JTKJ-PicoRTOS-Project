@@ -221,6 +221,8 @@ void displayTask(void *pvParameters)
                     buzzer_play_tone(440, 100);
                 } else if (received_code[i] == '_') {
                     buzzer_play_tone(600, 100);
+                } else if (received_code[i] == '-') {
+                    buzzer_play_tone(440, 200);
                 }
                 //BUZZER ENDS ----DELETE IF DOESN'T WORK
                 if (received_code[i] == ' ')
@@ -293,6 +295,7 @@ int main(void)
         tud_task();
         sleep_ms(10);
     }
+    init_buzzer();
     init_hat_sdk();
     init_sw2();
     init_led();
