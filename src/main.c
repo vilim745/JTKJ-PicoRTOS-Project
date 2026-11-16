@@ -41,8 +41,6 @@ char morse_code[MSG_BUFFER] = "";
 // Array for morse code from received computer
 char received_code[MSG_BUFFER] = "";
 
-bool last_morse_was_space = false;
-
 void clkFxn(void *pvParameters) {
     (void)pvParameters;
 
@@ -50,6 +48,7 @@ void clkFxn(void *pvParameters) {
         if (programState == IDLE && gpio_get(SW2_PIN) == 1) {
             printf("Button pressed, starting to read sensor data\n");
             toggle_led();
+            vTaskDelay(pdMS_TO_TICKS(300));
             programState = READ_SENSOR;
         }
         vTaskDelay(pdMS_TO_TICKS(50));
@@ -78,49 +77,48 @@ void sensorTask(void *pvParameters)
     while (1)
     {
         if (programState == READ_SENSOR) {
-            
             // Reads sensor data, detects the orientation and checks if button pressed.
 
                 if (ICM42670_read_sensor_data(&ax, &ay, &az, &gx, &gy, &gz, &t) == 0) {
 
-                if (gx > 200.0f) {
-                    printf("VÄLILYÖNTI\n");
-                    if (last_morse_was_space) {
-                        programState = MSG_READY;
-                        last_morse_was_space = false;
+                    if (gpio_get(SW2_PIN) == 1) {
+                        printf("Button pressed, stopping sensor data collection\n");
                         toggle_led();
-                    } else if (strlen(morse_code) < sizeof(morse_code) - 1) {
-                        strcat(morse_code, " ");
-                        printf("Morse code: %s\n", morse_code);
-                        last_morse_was_space = true;
-                    } else {
-                        printf("Morse code buffer full, cannot add space\n");
-                    }
-                    vTaskDelay(pdMS_TO_TICKS(500));
-                    
-                }
+                        programState = MSG_READY;
 
-                else if (fabs(gz) > 200.0f) {
-                    last_morse_was_space = false;
+                    } else if (gx > 180.0f) {
+
+                        if (strlen(morse_code) > 0 && morse_code[strlen(morse_code) - 1] != ' ') {
+                            if (strlen(morse_code) < sizeof(morse_code) - 1) {
+                                printf("SPACE\n");
+                                strcat(morse_code, " ");
+                                printf("Morse code: %s\n", morse_code);
+                            } else {
+                        printf("Morse code buffer full, cannot add space\n");
+                        }
+                    }
+                    vTaskDelay(pdMS_TO_TICKS(300));
+
+                    } else if (fabs(gz) > 200.0f) {
+
                     if (gz > 0) {
-                        printf("VASEN (PISTE)\n");
+                        printf("DOT (LEFT)\n");
                         if (strlen(morse_code) < sizeof(morse_code) - 1) {
                             strcat(morse_code, ".");
                             printf("Morse code: %s\n", morse_code);
                         } else {
                             printf("Morse code buffer full, cannot add dot\n");
                         }
-                        vTaskDelay(pdMS_TO_TICKS(500));
-                    }
-                    else {
-                        printf("OIKEA (VIIVA)\n");
+                        vTaskDelay(pdMS_TO_TICKS(300));
+                    } else {
+                        printf("DASH (RIGHT)\n");
                         if (strlen(morse_code) < sizeof(morse_code) - 1) {
                             strcat(morse_code, "-");
                             printf("Morse code: %s\n", morse_code);
                         } else {
                             printf("Morse code buffer full, cannot add dash\n");
                         }
-                        vTaskDelay(pdMS_TO_TICKS(500));
+                        vTaskDelay(pdMS_TO_TICKS(300));
                     }
                 }
             } else {
@@ -143,10 +141,11 @@ void transmitTask(void *pvParameters)
     {
         if (programState == MSG_READY) {
             printf("Morse code ready: %s\n", morse_code);
+            vTaskDelay(pdMS_TO_TICKS(1000));
 
             if (tud_cdc_n_connected(CDC_ITF_DATA)){
             // Lähetä tiedot käyttäen tud_cdc_n_write
-            snprintf(buf, MSG_BUFFER,"Morse:%s\n", morse_code);
+            snprintf(buf, MSG_BUFFER,"Morse code transmitted: %s\n", morse_code);
             tud_cdc_n_write(CDC_ITF_DATA, buf, strlen(buf));
             tud_cdc_n_write_flush(CDC_ITF_DATA);
             
@@ -202,15 +201,15 @@ void displayTask(void *pvParameters)
 
             for (int i = 0; received_code[i] != '\0'; i++)
             {
-                //BUZZER STARTS ----DELETE IF DOESN'T WORK
+                //BUZZER STARTS
                 if (received_code[i] == '.') {
                     buzzer_play_tone(440, 100);
-                } else if (received_code[i] == '_') {
-                    buzzer_play_tone(600, 100);
+                    vTaskDelay(pdMS_TO_TICKS(200));
                 } else if (received_code[i] == '-') {
-                    buzzer_play_tone(440, 200);
+                    buzzer_play_tone(440, 300);
+                    vTaskDelay(pdMS_TO_TICKS(200));
                 }
-                //BUZZER ENDS ----DELETE IF DOESN'T WORK
+                //BUZZER ENDS
                 if (received_code[i] == ' ')
                 {
                     write_text(display_text);
@@ -252,20 +251,6 @@ static void usbTask(void *arg) {
     }
 }
 
-/*
-static void buzzerTask(void *arg) {
-    (void)arg;
-    
-    //Initialize the buzzer
-    init_buzzer();
-    printf("Initializing buzzer\n");
-    
-    while(1){
-        buzzer_play_tone (440, 500);
-        vTaskDelay(pdMS_TO_TICKS(6000));
-    }
-}
-*/
 
 int main(void)
 {
@@ -292,14 +277,6 @@ int main(void)
     TaskHandle_t hClkFxn = NULL;
     TaskHandle_t hUsb = NULL;
 
-    /*
-    TaskHandle_t hBuzzerTask = NULL;
-
-    if (xTaskCreate(buzzerTask, "buzzer", 1024, NULL, 3, &hBuzzerTask) != pdPASS) {
-        printf("Buzzer Task creation failed\n");
-        return 0;
-    }
-    */
 
     if (xTaskCreate(usbTask, "usb", 1024, NULL, 2, &hUsb) != pdPASS) {
         printf("USB Task creation failed\n");
