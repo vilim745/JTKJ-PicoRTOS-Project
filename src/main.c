@@ -48,6 +48,7 @@ void clkFxn(void *pvParameters) {
     while (1) {
         if (programState == IDLE && gpio_get(SW2_PIN) == 1) {
             printf("Button pressed, starting to read sensor data\n");
+            toggle_led();
             programState = READ_SENSOR;
         } else if (programState == IDLE) {
             programState = NEW_MSG;
@@ -267,6 +268,7 @@ int main(void)
     }*/
     init_hat_sdk();
     init_sw2();
+    init_led();
     sleep_ms(300); // Wait some time so initialization of USB and hat is done.
 
     TaskHandle_t hSensorTask = NULL;
