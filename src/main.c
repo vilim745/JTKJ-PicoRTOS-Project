@@ -275,6 +275,7 @@ int main(void)
     /*while (!stdio_usb_connected()){
         sleep_ms(10);
     }*/
+    init_buzzer();
     init_hat_sdk();
     init_sw2();
     init_led();
