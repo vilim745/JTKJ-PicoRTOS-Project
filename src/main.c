@@ -8,11 +8,11 @@
 #include <pico/stdlib.h>
 
 #include <FreeRTOS.h>
-#include <queue.h>
 #include <task.h>
 
 #include <tusb.h>
 #include "tkjhat/sdk.h"
+#include "usbSerialDebug/helper.h"
 
 
 // Default stack size for the tasks. It can be reduced to 1024 if task is not using lot of memory.
@@ -21,6 +21,7 @@
 #define MSG_BUFFER 100
 
 #define CDC_ITF_DATA  0
+#define CDC_ITF_DEBUG 1
 
 // Add here necessary states
 enum state
@@ -144,16 +145,17 @@ void transmitTask(void *pvParameters)
         if (programState == MSG_READY) {
             printf("Morse code ready: %s\n", morse_code);
 
-            snprintf(buf, MSG_BUFFER,"temp:%s\n", morse_code);
-            printf("[DEBUG] Generated : %s", buf);
-            snprintf(buf, MSG_BUFFER,"%s\n", morse_code);
-            tud_cdc_n_write(CDC_ITF_DATA,buf,strlen(buf));
+            if (tud_cdc_n_connected(CDC_ITF_DATA)){
+            // Lähetä tiedot käyttäen tud_cdc_n_write
+            snprintf(buf, MSG_BUFFER,"Morse:%s\n", morse_code);
+            tud_cdc_n_write(CDC_ITF_DATA, buf, strlen(buf));
             tud_cdc_n_write_flush(CDC_ITF_DATA);
             
             morse_code[0] = '\0';
             programState = IDLE;
-        }
-        vTaskDelay(pdMS_TO_TICKS(500));
+            }
+        }       
+    vTaskDelay(pdMS_TO_TICKS(500));
     }
 }
 
@@ -333,6 +335,7 @@ int main(void)
 
     // Start the scheduler (never returns)
     tusb_init();
+    usb_serial_init();
     vTaskStartScheduler();
 
     // Never reach this line.
