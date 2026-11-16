@@ -48,6 +48,7 @@ void clkFxn(void *pvParameters) {
     while (1) {
         if (programState == IDLE && gpio_get(SW2_PIN) == 1) {
             printf("Button pressed, starting to read sensor data\n");
+            toggle_led();
             programState = READ_SENSOR;
         } else if (programState == IDLE) {
             programState = NEW_MSG;
@@ -88,6 +89,7 @@ void sensorTask(void *pvParameters)
                     if (last_morse_was_space) {
                         programState = MSG_READY;
                         last_morse_was_space = false;
+                        toggle_led();
                     } else if (strlen(morse_code) < sizeof(morse_code) - 1) {
                         strcat(morse_code, " ");
                         printf("Morse code: %s\n", morse_code);
@@ -136,24 +138,12 @@ void transmitTask(void *pvParameters)
     // Sends morse-code to the computer using USB
     char buf[MSG_BUFFER]; 
     (void)pvParameters;
-    
-    while (!tud_mounted() || !tud_cdc_n_connected(CDC_ITF_DATA)){
-        vTaskDelay(pdMS_TO_TICKS(50));
-    }
 
 
     while (1)
     {
         if (programState == MSG_READY) {
             printf("Morse code ready: %s\n", morse_code);
-            
-            if (tud_cdc_n_connected(CDC_ITF_DATA)){
-                // Lähetä tiedot käyttäen tud_cdc_n_write
-                snprintf(buf, MSG_BUFFER, "%s\n", morse_code);
-                tud_cdc_n_write(CDC_ITF_DATA, buf, strlen(buf));
-                tud_cdc_n_write_flush(CDC_ITF_DATA);
-                printf("Message sent\n");
-                }
             morse_code[0] = '\0';
             programState = IDLE;
             vTaskDelay(pdMS_TO_TICKS(500));
@@ -287,6 +277,7 @@ int main(void)
     }*/
     init_hat_sdk();
     init_sw2();
+    init_led();
     sleep_ms(300); // Wait some time so initialization of USB and hat is done.
 
     TaskHandle_t hSensorTask = NULL;
@@ -340,7 +331,6 @@ int main(void)
 
 
     // Start the scheduler (never returns)
-    tusb_init();
     vTaskStartScheduler();
 
     // Never reach this line.
