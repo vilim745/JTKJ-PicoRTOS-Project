@@ -211,7 +211,7 @@ void displayTask(void *pvParameters)
                 //BUZZER STARTS ----DELETE IF DOESN'T WORK
                 if (received_code[i] == '.') {
                     buzzer_play_tone(440, 100);
-                } else if (received_Code[i] == '_') {
+                } else if (received_code[i] == '-') {
                     buzzer_play_tone(600, 100);
                 }
                 //BUZZER ENDS ----DELETE IF DOESN'T WORK
