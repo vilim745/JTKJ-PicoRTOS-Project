@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
-#include <tusb.h>
+
 
 #include <pico/stdlib.h>
 
@@ -11,7 +11,10 @@
 #include <queue.h>
 #include <task.h>
 
+#include <tusb.h>
+#include "usbSerialDebug/helper.h"
 #include "tkjhat/sdk.h"
+
 
 // Default stack size for the tasks. It can be reduced to 1024 if task is not using lot of memory.
 #define DEFAULT_STACK_SIZE 2048
