@@ -138,24 +138,12 @@ void transmitTask(void *pvParameters)
     // Sends morse-code to the computer using USB
     char buf[MSG_BUFFER]; 
     (void)pvParameters;
-    
-    while (!tud_mounted() || !tud_cdc_n_connected(CDC_ITF_DATA)){
-        vTaskDelay(pdMS_TO_TICKS(50));
-    }
 
 
     while (1)
     {
         if (programState == MSG_READY) {
             printf("Morse code ready: %s\n", morse_code);
-            
-            if (tud_cdc_n_connected(CDC_ITF_DATA)){
-                // Lähetä tiedot käyttäen tud_cdc_n_write
-                snprintf(buf, MSG_BUFFER, "%s\n", morse_code);
-                tud_cdc_n_write(CDC_ITF_DATA, buf, strlen(buf));
-                tud_cdc_n_write_flush(CDC_ITF_DATA);
-                printf("Message sent\n");
-                }
             morse_code[0] = '\0';
             programState = IDLE;
             vTaskDelay(pdMS_TO_TICKS(500));
@@ -249,16 +237,6 @@ void displayTask(void *pvParameters)
     }
 }
 
-// ---- Task running USB stack ----
-static void usbTask(void *arg) {
-    (void)arg;
-    while (1) {
-        tud_task();              // With FreeRTOS wait for events
-                                 // Do not add vTaskDelay. 
-    }
-}
-
-
 
 int main(void)
 {
@@ -277,12 +255,6 @@ int main(void)
     TaskHandle_t hReceiveTask = NULL;
     TaskHandle_t hDisplayTask = NULL;
     TaskHandle_t hClkFxn = NULL;
-    TaskHandle_t hUsb = NULL;
-
-    if (xTaskCreate(usbTask, "usb", 1024, NULL, 3, &hUsb) != pdPASS) {
-        printf("USB Task creation failed\n");
-        return 0;
-    }
 
     if (xTaskCreate(clkFxn, "clkFxn", DEFAULT_STACK_SIZE, NULL, 1, &hClkFxn) != pdPASS) {
         printf("Clock Task creation failed\n");
@@ -314,7 +286,6 @@ int main(void)
 
 
     // Start the scheduler (never returns)
-    tusb_init();
     vTaskStartScheduler();
 
     // Never reach this line.
