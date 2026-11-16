@@ -12,7 +12,6 @@
 #include <task.h>
 
 #include <tusb.h>
-#include "usbSerialDebug/helper.h"
 #include "tkjhat/sdk.h"
 
 
@@ -21,7 +20,6 @@
 // #define DISPLAY_WIDTH
 #define MSG_BUFFER 100
 
-#define CDC_ITF_DEBUG 0
 #define CDC_ITF_DATA  1
 
 // Add here necessary states
@@ -147,6 +145,16 @@ void transmitTask(void *pvParameters)
     {
         if (programState == MSG_READY) {
             printf("Morse code ready: %s\n", morse_code);
+
+            snprintf(buf, MSG_BUFFER,"temp:%s\n", morse_code);
+            printf("[DEBUG] Generated : %s", buf);
+            snprintf(buf, MSG_BUFFER,"%s\n", morse_code);
+            tud_cdc_n_write(CDC_ITF_DATA,buf,strlen(buf));
+            tud_cdc_n_write_flush(CDC_ITF_DATA);
+            tud_task();
+            sleep_ms(1000);
+
+
             morse_code[0] = '\0';
             programState = IDLE;
             vTaskDelay(pdMS_TO_TICKS(500));
@@ -211,7 +219,7 @@ void displayTask(void *pvParameters)
                 //BUZZER STARTS ----DELETE IF DOESN'T WORK
                 if (received_code[i] == '.') {
                     buzzer_play_tone(440, 100);
-                } else if (received_Code[i] == '_') {
+                } else if (received_code[i] == '_') {
                     buzzer_play_tone(600, 100);
                 }
                 //BUZZER ENDS ----DELETE IF DOESN'T WORK
@@ -273,11 +281,18 @@ static void buzzerTask(void *arg) {
 
 int main(void)
 {
+    tusb_init();
+
     stdio_init_all();
     // Uncomment this lines if you want to wait till the serial monitor is connected
     /*while (!stdio_usb_connected()){
         sleep_ms(10);
     }*/
+
+    while (!tud_cdc_n_connected(0) || !tud_cdc_n_connected(1)){
+        tud_task();
+        sleep_ms(10);
+    }
     init_hat_sdk();
     init_sw2();
     init_led();
@@ -329,6 +344,7 @@ int main(void)
         printf("Display Task creation failed\n");
         return 0;
     };
+
 
 
 
