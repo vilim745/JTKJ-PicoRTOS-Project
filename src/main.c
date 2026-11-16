@@ -20,7 +20,7 @@
 // #define DISPLAY_WIDTH
 #define MSG_BUFFER 100
 
-#define CDC_ITF_DATA  1
+#define CDC_ITF_DATA  0
 
 // Add here necessary states
 enum state
@@ -33,7 +33,7 @@ enum state
 };
 
 
-enum state programState = IDLE;
+volatile enum state programState = IDLE;
 
 // Array for morse code from sensor
 char morse_code[MSG_BUFFER] = "";
@@ -51,10 +51,8 @@ void clkFxn(void *pvParameters) {
             printf("Button pressed, starting to read sensor data\n");
             toggle_led();
             programState = READ_SENSOR;
-        } else if (programState == IDLE) {
-            programState = NEW_MSG;
         }
-        vTaskDelay(pdMS_TO_TICKS(500));
+        vTaskDelay(pdMS_TO_TICKS(50));
     }
 }
 void sensorTask(void *pvParameters)
@@ -151,15 +149,11 @@ void transmitTask(void *pvParameters)
             snprintf(buf, MSG_BUFFER,"%s\n", morse_code);
             tud_cdc_n_write(CDC_ITF_DATA,buf,strlen(buf));
             tud_cdc_n_write_flush(CDC_ITF_DATA);
-            tud_task();
-            sleep_ms(1000);
-
-
+            
             morse_code[0] = '\0';
             programState = IDLE;
-            vTaskDelay(pdMS_TO_TICKS(500));
         }
-        
+        vTaskDelay(pdMS_TO_TICKS(500));
     }
 }
 
@@ -173,7 +167,7 @@ void receiveTask(void *pvParameters)
 
     while (1)
     {
-        if (programState == NEW_MSG) {
+        if (programState == IDLE) {
             int ch = getchar_timeout_us(10); 
             if (ch >= 0) {
                 putchar((char)ch);           // kaiku: lähetä takaisin tismalleen mitä saatiin
@@ -182,13 +176,10 @@ void receiveTask(void *pvParameters)
                     received_code[index] = '\0';
                     programState = UPDATE_OLED;
                     index = 0;
-                    } else if (index <= MSG_BUFFER) {
+                    } else if (index < MSG_BUFFER - 1) {
                         received_code[index++] = (char)ch; 
                 }
-            } else {
-                programState = IDLE;
             }
-            
         }  
         vTaskDelay(pdMS_TO_TICKS(200));
     }
@@ -198,13 +189,7 @@ void displayTask(void *pvParameters)
 {  
     // Näyttää vastaanotetun tekstin näytöllä
     // Displays the received message on the screen
-
     (void)pvParameters;
-
-        init_display();
-        printf("Initializing the display task\n");
-
-
 
     while (1)
     {
@@ -216,7 +201,7 @@ void displayTask(void *pvParameters)
 
             for (int i = 0; received_code[i] != '\0'; i++)
             {
-                //BUZZER STARTS ----DELETE IF DOESN'T WORK
+                /*BUZZER STARTS ----DELETE IF DOESN'T WORK
                 if (received_code[i] == '.') {
                     buzzer_play_tone(440, 100);
                 } else if (received_code[i] == '_') {
@@ -224,7 +209,7 @@ void displayTask(void *pvParameters)
                 } else if (received_code[i] == '-') {
                     buzzer_play_tone(440, 200);
                 }
-                //BUZZER ENDS ----DELETE IF DOESN'T WORK
+                BUZZER ENDS ----DELETE IF DOESN'T WORK*/
                 if (received_code[i] == ' ')
                 {
                     write_text(display_text);
@@ -285,20 +270,18 @@ int main(void)
 {
     stdio_init_all();
     // Uncomment this lines if you want to wait till the serial monitor is connected
-    /*while (!stdio_usb_connected()){
-        sleep_ms(10);
-    }*/
-
-    while (!tud_cdc_n_connected(CDC_ITF_DATA)) {
-        tud_task();
-        printf("Waiting for USB connection...\n");
+    while (!stdio_usb_connected()){
         sleep_ms(10);
     }
-    init_buzzer();
+
+
+    //init_buzzer();
     init_hat_sdk();
     init_sw2();
     init_led();
-    sleep_ms(300); // Wait some time so initialization of USB and hat is done.
+    init_display();
+    printf("Initializing the display task\n");
+
 
     TaskHandle_t hSensorTask = NULL;
     TaskHandle_t hTransmitTask = NULL;
@@ -316,12 +299,12 @@ int main(void)
     }
     */
 
-    if (xTaskCreate(usbTask, "usb", 1024, NULL, 3, &hUsb) != pdPASS) {
+    if (xTaskCreate(usbTask, "usb", 1024, NULL, 2, &hUsb) != pdPASS) {
         printf("USB Task creation failed\n");
         return 0;
     }
 
-    if (xTaskCreate(clkFxn, "clkFxn", DEFAULT_STACK_SIZE, NULL, 1, &hClkFxn) != pdPASS) {
+    if (xTaskCreate(clkFxn, "clkFxn", DEFAULT_STACK_SIZE, NULL, 2, &hClkFxn) != pdPASS) {
         printf("Clock Task creation failed\n");
         return 0;
     };
@@ -346,9 +329,6 @@ int main(void)
         printf("Display Task creation failed\n");
         return 0;
     };
-
-
-
 
 
     // Start the scheduler (never returns)
