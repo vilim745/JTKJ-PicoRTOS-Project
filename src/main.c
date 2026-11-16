@@ -12,7 +12,6 @@
 
 #include <tusb.h>
 #include "tkjhat/sdk.h"
-#include "usbSerialDebug/helper.h"
 
 
 // Default stack size for the tasks. It can be reduced to 1024 if task is not using lot of memory.
@@ -203,7 +202,7 @@ void displayTask(void *pvParameters)
 
             for (int i = 0; received_code[i] != '\0'; i++)
             {
-                /*BUZZER STARTS ----DELETE IF DOESN'T WORK
+                //BUZZER STARTS ----DELETE IF DOESN'T WORK
                 if (received_code[i] == '.') {
                     buzzer_play_tone(440, 100);
                 } else if (received_code[i] == '_') {
@@ -211,7 +210,7 @@ void displayTask(void *pvParameters)
                 } else if (received_code[i] == '-') {
                     buzzer_play_tone(440, 200);
                 }
-                BUZZER ENDS ----DELETE IF DOESN'T WORK*/
+                //BUZZER ENDS ----DELETE IF DOESN'T WORK
                 if (received_code[i] == ' ')
                 {
                     write_text(display_text);
@@ -271,18 +270,19 @@ static void buzzerTask(void *arg) {
 int main(void)
 {
     stdio_init_all();
-    // Uncomment this lines if you want to wait till the serial monitor is connected
-    while (!stdio_usb_connected()){
+
+    while (!stdio_usb_connected()){ // wait for usb before starting the program.
         sleep_ms(10);
     }
 
-
-    //init_buzzer();
+    printf("Initializing all components\n");
+    
+    init_buzzer();
     init_hat_sdk();
     init_sw2();
     init_led();
     init_display();
-    printf("Initializing the display task\n");
+
 
 
     TaskHandle_t hSensorTask = NULL;
@@ -335,7 +335,6 @@ int main(void)
 
     // Start the scheduler (never returns)
     tusb_init();
-    usb_serial_init();
     vTaskStartScheduler();
 
     // Never reach this line.
