@@ -215,6 +215,13 @@ void displayTask(void *pvParameters)
 
             for (int i = 0; received_code[i] != '\0'; i++)
             {
+                //BUZZER STARTS ----DELETE IF DOESN'T WORK
+                if (received_code[i] == '.') {
+                    buzzer_play_tone(440, 100);
+                } else if (received_Code[i] == '_') {
+                    buzzer_play_tone(600, 100);
+                }
+                //BUZZER ENDS ----DELETE IF DOESN'T WORK
                 if (received_code[i] == ' ')
                 {
                     write_text(display_text);
@@ -256,7 +263,20 @@ static void usbTask(void *arg) {
     }
 }
 
-
+/*
+static void buzzerTask(void *arg) {
+    (void)arg;
+    
+    //Initialize the buzzer
+    init_buzzer();
+    printf("Initializing buzzer\n");
+    
+    while(1){
+        buzzer_play_tone (440, 500);
+        vTaskDelay(pdMS_TO_TICKS(6000));
+    }
+}
+*/
 
 int main(void)
 {
@@ -275,6 +295,15 @@ int main(void)
     TaskHandle_t hDisplayTask = NULL;
     TaskHandle_t hClkFxn = NULL;
     TaskHandle_t hUsb = NULL;
+
+    /*
+    TaskHandle_t hBuzzerTask = NULL;
+
+    if (xTaskCreate(buzzerTask, "buzzer", 1024, NULL, 3, &hBuzzerTask) != pdPASS) {
+        printf("Buzzer Task creation failed\n");
+        return 0;
+    }
+    */
 
     if (xTaskCreate(usbTask, "usb", 1024, NULL, 3, &hUsb) != pdPASS) {
         printf("USB Task creation failed\n");
