@@ -38,7 +38,7 @@ volatile enum state programState = IDLE;
 // Array for morse code from sensor
 char morse_code[MSG_BUFFER] = "";
 
-// Array for morse code from received computer
+// Array for morse code received from computer
 char received_code[MSG_BUFFER] = "";
 
 void clkFxn(void *pvParameters) {
@@ -54,20 +54,20 @@ void clkFxn(void *pvParameters) {
         vTaskDelay(pdMS_TO_TICKS(50));
     }
 }
+
 void sensorTask(void *pvParameters)
 {
     // Kerää dataa liikesensorilta ja tulkitsee liikekomennot
     // Collects data from movement-sensor and recognizes movement commands
     (void)pvParameters;
-
     float ax, ay, az, gx, gy, gz, t;
+
     // Setting up the sensor. 
     if (init_ICM42670() == 0) {
         printf("ICM-42670P initialized successfully!\n");
         if (ICM42670_start_with_default_values() != 0) {
             printf("ICM-42670P could not initialize accelerometer or gyroscope");
         }
-
     } else {
         printf("Failed to initialize ICM-42670P.\n");
     }
@@ -77,33 +77,34 @@ void sensorTask(void *pvParameters)
     while (1)
     {
         if (programState == READ_SENSOR) {
-            // Reads sensor data, detects the orientation and checks if button pressed.
+            // Reads sensor data, detects movement commands and checks if button pressed.
 
-                if (ICM42670_read_sensor_data(&ax, &ay, &az, &gx, &gy, &gz, &t) == 0) {
+            if (ICM42670_read_sensor_data(&ax, &ay, &az, &gx, &gy, &gz, &t) == 0) {
 
-                    if (gpio_get(SW2_PIN) == 1) {
-                        printf("Button pressed, stopping sensor data collection\n");
-                        toggle_led();
-                        programState = MSG_READY;
+                if (gpio_get(SW2_PIN) == 1) {
+                    printf("Button pressed, stopping sensor data collection\n");
+                    toggle_led();
+                    strcat(morse_code, "  \n")
+                    programState = MSG_READY;
 
-                    } else if (gx > 180.0f) {
+                } else if (gx > 180.0f) {
 
-                        if (strlen(morse_code) > 0 && morse_code[strlen(morse_code) - 1] != ' ') {
-                            if (strlen(morse_code) < sizeof(morse_code) - 1) {
-                                printf("SPACE\n");
-                                strcat(morse_code, " ");
-                                printf("Morse code: %s\n", morse_code);
-                            } else {
-                        printf("Morse code buffer full, cannot add space\n");
+                    if (strlen(morse_code) > 0) {
+                        if (strlen(morse_code) < MSG_BUFFER - 2) {
+                            printf("SPACE\n");
+                            strcat(morse_code, " ");
+                            printf("Morse code: %s\n", morse_code);
+                        } else {
+                            printf("Morse code buffer full, cannot add space\n");
                         }
                     }
                     vTaskDelay(pdMS_TO_TICKS(300));
 
-                    } else if (fabs(gz) > 200.0f) {
+                } else if (fabs(gz) > 200.0f) {
 
                     if (gz > 0) {
                         printf("DOT (LEFT)\n");
-                        if (strlen(morse_code) < sizeof(morse_code) - 1) {
+                        if (strlen(morse_code) < MSG_BUFFER - 2) {
                             strcat(morse_code, ".");
                             printf("Morse code: %s\n", morse_code);
                         } else {
@@ -112,7 +113,7 @@ void sensorTask(void *pvParameters)
                         vTaskDelay(pdMS_TO_TICKS(300));
                     } else {
                         printf("DASH (RIGHT)\n");
-                        if (strlen(morse_code) < sizeof(morse_code) - 1) {
+                        if (strlen(morse_code) < MSG_BUFFER - 2) {
                             strcat(morse_code, "-");
                             printf("Morse code: %s\n", morse_code);
                         } else {
@@ -309,9 +310,10 @@ int main(void)
         return 0;
     };
 
+    // Init tiny usb
+    tusb_init();
 
     // Start the scheduler (never returns)
-    tusb_init();
     vTaskStartScheduler();
 
     // Never reach this line.
