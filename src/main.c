@@ -83,7 +83,7 @@ void sensorTask(void *pvParameters)
                 if (gpio_get(SW2_PIN) == 1) {
                     printf("Button pressed, stopping sensor data collection\n");
                     toggle_led();
-                    strcat(morse_code, "  \n")
+                    strcat(morse_code, "  \n");
                     programState = MSG_READY;
 
                 } else if (gx > 180.0f) {
