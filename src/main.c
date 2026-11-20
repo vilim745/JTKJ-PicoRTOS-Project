@@ -19,8 +19,7 @@
 // #define DISPLAY_WIDTH
 #define MSG_BUFFER 100
 
-#define CDC_ITF_DATA  0
-#define CDC_ITF_DEBUG 1
+#define CDC_ITF_INTERFACE 0
 
 // Add here necessary states
 enum state
@@ -144,11 +143,11 @@ void transmitTask(void *pvParameters)
             printf("Morse code ready: %s\n", morse_code);
             vTaskDelay(pdMS_TO_TICKS(1000));
 
-            if (tud_cdc_n_connected(CDC_ITF_DATA)){
+            if (tud_cdc_n_connected(CDC_ITF_INTERFACE)){
             // Lähetä tiedot käyttäen tud_cdc_n_write
             snprintf(buf, MSG_BUFFER,"Morse code transmitted: %s\n", morse_code);
-            tud_cdc_n_write(CDC_ITF_DATA, buf, strlen(buf));
-            tud_cdc_n_write_flush(CDC_ITF_DATA);
+            tud_cdc_n_write(CDC_ITF_INTERFACE, buf, strlen(buf));
+            tud_cdc_n_write_flush(CDC_ITF_INTERFACE);
             
             morse_code[0] = '\0';
             programState = IDLE;
