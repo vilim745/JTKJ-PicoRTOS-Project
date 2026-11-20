@@ -14,12 +14,15 @@
 #include "tkjhat/sdk.h"
 
 
+
 // Default stack size for the tasks. It can be reduced to 1024 if task is not using lot of memory.
 #define DEFAULT_STACK_SIZE 2048
 // #define DISPLAY_WIDTH
 #define MSG_BUFFER 100
 
-#define CDC_ITF_INTERFACE 0
+#define CDC_ITF_DEBUG 0
+#define CDC_ITF_DATA 1
+
 
 // Add here necessary states
 enum state
@@ -133,26 +136,25 @@ void transmitTask(void *pvParameters)
 {
     // Lähettää morsekoodin tietokoneelle
     // Sends morse-code to the computer using USB
-    char buf[MSG_BUFFER]; 
+    char buf[MSG_BUFFER] = ""; 
     (void)pvParameters;
 
 
     while (1)
     {
         if (programState == MSG_READY) {
-            printf("Morse code ready: %s\n", morse_code);
-            vTaskDelay(pdMS_TO_TICKS(1000));
 
-            if (tud_cdc_n_connected(CDC_ITF_INTERFACE)){
-            // Lähetä tiedot käyttäen tud_cdc_n_write
-            snprintf(buf, MSG_BUFFER,"Morse code transmitted: %s\n", morse_code);
-            tud_cdc_n_write(CDC_ITF_INTERFACE, buf, strlen(buf));
-            tud_cdc_n_write_flush(CDC_ITF_INTERFACE);
-            
-            morse_code[0] = '\0';
-            programState = IDLE;
+            if (tud_cdc_n_connected(CDC_ITF_DATA)){
+                // Lähetä tiedot käyttäen tud_cdc_n_write
+                snprintf(buf, MSG_BUFFER,"Morse code transmitted: %s\n", morse_code);
+                tud_cdc_n_write(CDC_ITF_DATA, buf, strlen(buf));
+                tud_cdc_n_write_flush(CDC_ITF_DATA);
+                
+                morse_code[0] = '\0';
             }
-        }       
+
+            programState = IDLE;      
+        } 
     vTaskDelay(pdMS_TO_TICKS(500));
     }
 }
@@ -204,10 +206,10 @@ void displayTask(void *pvParameters)
                 //BUZZER STARTS
                 if (received_code[i] == '.') {
                     buzzer_play_tone(440, 100);
-                    vTaskDelay(pdMS_TO_TICKS(200));
+                    vTaskDelay(pdMS_TO_TICKS(100));
                 } else if (received_code[i] == '-') {
                     buzzer_play_tone(440, 300);
-                    vTaskDelay(pdMS_TO_TICKS(200));
+                    vTaskDelay(pdMS_TO_TICKS(100));
                 }
                 //BUZZER ENDS
                 if (received_code[i] == ' ')
