@@ -17,7 +17,6 @@
 
 // Default stack size for the tasks. It can be reduced to 1024 if task is not using lot of memory.
 #define DEFAULT_STACK_SIZE 2048
-// #define DISPLAY_WIDTH
 #define MSG_BUFFER 100
 
 #define CDC_ITF_DEBUG 0
@@ -25,7 +24,6 @@
 
 
 
-// Add here necessary states
 enum state
 {
     IDLE = 1,
@@ -44,6 +42,8 @@ char morse_code[MSG_BUFFER] = "";
 // Array for morse code received from computer
 char received_code[MSG_BUFFER] = "";
 
+
+// Function to print debug messages to USB serial if connected
 static void debug_print(const char *msg) {
     if (!usb_serial_connected()) {
         return;
@@ -54,6 +54,7 @@ static void debug_print(const char *msg) {
 }
 
 void clkFxn(void *pvParameters) {
+    // Clock function to check button press and change program state
     (void)pvParameters;
 
     while (1) {
@@ -69,7 +70,6 @@ void clkFxn(void *pvParameters) {
 
 void sensorTask(void *pvParameters)
 {
-    // Kerää dataa liikesensorilta ja tulkitsee liikekomennot
     // Collects data from movement-sensor and recognizes movement commands
     (void)pvParameters;
     float ax, ay, az, gx, gy, gz, t;
@@ -161,7 +161,6 @@ void sensorTask(void *pvParameters)
 
 void transmitTask(void *pvParameters)
 {
-    // Lähettää morsekoodin tietokoneelle
     // Sends morse-code to the computer using USB
     char buf[MSG_BUFFER] = ""; 
     (void)pvParameters;
@@ -188,9 +187,10 @@ void transmitTask(void *pvParameters)
     }
 }
 
-void receiveTask(void *pvParameters)
+
+// !!! CHANGE TO USE tud_cdc_rx_cb (example in 5. sarjaliikenne) !!!
+/*void receiveTask(void *pvParameters)
 {
-    // Vastaanottaa morseviestin tietokoneelta
     // Receives morse-code message from the computer using USB
 
     (void)pvParameters;
@@ -201,7 +201,7 @@ void receiveTask(void *pvParameters)
         if (programState == IDLE) {
             int ch = getchar_timeout_us(10); 
             if (ch >= 0) {
-                putchar((char)ch);           // kaiku: lähetä takaisin tismalleen mitä saatiin
+                putchar((char)ch);           
 
                 if (ch == '\n') {
                     received_code[index] = '\0';
@@ -214,11 +214,11 @@ void receiveTask(void *pvParameters)
         }  
         vTaskDelay(pdMS_TO_TICKS(200));
     }
-}
+}*/
 
 void displayTask(void *pvParameters)
 {  
-    // Näyttää vastaanotetun tekstin näytöllä
+    
     // Displays the received message on the screen
     (void)pvParameters;
 
