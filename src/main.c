@@ -107,6 +107,7 @@ void sensorTask(void *pvParameters)
                 if (gpio_get(SW2_PIN) == 1) {
                     debug_print("Button pressed, stopping sensor data collection\n");
                     toggle_led();
+                    strcat(morse_code, "  \n"); // end of message
                     programState = MSG_READY;
 
                 } else if (gx > 180.0f) {
@@ -171,7 +172,7 @@ void transmitTask(void *pvParameters)
         if (programState == MSG_READY) {
             if (tud_cdc_n_connected(CDC_ITF_DATA)){
                 char msg[128];
-                snprintf(msg, sizeof(msg), "Transmitting morse code: %s\n", morse_code);
+                snprintf(msg, sizeof(msg), "Transmitting morse code: %s", morse_code);
                 debug_print(msg);
                 // Lähetä tiedot käyttäen tud_cdc_n_write
                 tud_cdc_n_write(CDC_ITF_DATA, morse_code, strlen(morse_code));
