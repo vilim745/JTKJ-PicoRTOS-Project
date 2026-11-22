@@ -1,18 +1,18 @@
 
 #include <stdio.h>
 #include <string.h>
+
 #include <stdlib.h>
 #include <math.h>
-
 
 #include <pico/stdlib.h>
 
 #include <FreeRTOS.h>
 #include <task.h>
-
 #include <tusb.h>
-#include "tkjhat/sdk.h"
 
+#include "tkjhat/sdk.h"
+#include "usbSerialDebug/helper.h"
 
 
 // Default stack size for the tasks. It can be reduced to 1024 if task is not using lot of memory.
@@ -63,6 +63,13 @@ void sensorTask(void *pvParameters)
     // Collects data from movement-sensor and recognizes movement commands
     (void)pvParameters;
     float ax, ay, az, gx, gy, gz, t;
+
+    init_hat_sdk();
+    init_sw2();
+    init_led();
+    init_buzzer();
+    init_display();
+
 
     // Setting up the sensor. 
     if (init_ICM42670() == 0) {
@@ -143,13 +150,18 @@ void transmitTask(void *pvParameters)
     while (1)
     {
         if (programState == MSG_READY) {
-
             if (tud_cdc_n_connected(CDC_ITF_DATA)){
+                printf("Transmitting morse code: %s", morse_code);
                 // Lähetä tiedot käyttäen tud_cdc_n_write
-                snprintf(buf, MSG_BUFFER,"Morse code transmitted: %s\n", morse_code);
-                tud_cdc_n_write(CDC_ITF_DATA, buf, strlen(buf));
+                tud_cdc_n_write(CDC_ITF_DATA, morse_code, strlen(morse_code));
                 tud_cdc_n_write_flush(CDC_ITF_DATA);
-                
+
+                   if (usb_serial_connected()) {
+            snprintf(buf, MSG_BUFFER, "%s", morse_code);
+            usb_serial_print(buf);
+            usb_serial_flush();
+            }
+                vTaskDelay(pdMS_TO_TICKS(1000));
                 morse_code[0] = '\0';
             }
 
@@ -256,21 +268,6 @@ static void usbTask(void *arg) {
 
 int main(void)
 {
-    stdio_init_all();
-
-    while (!stdio_usb_connected()){ // wait for usb before starting the program.
-        sleep_ms(10);
-    }
-
-    printf("Initializing all components\n");
-    
-    init_buzzer();
-    init_hat_sdk();
-    init_sw2();
-    init_led();
-    init_display();
-
-
 
     TaskHandle_t hSensorTask = NULL;
     TaskHandle_t hTransmitTask = NULL;
@@ -280,40 +277,22 @@ int main(void)
     TaskHandle_t hUsb = NULL;
 
 
-    if (xTaskCreate(usbTask, "usb", 1024, NULL, 2, &hUsb) != pdPASS) {
-        printf("USB Task creation failed\n");
-        return 0;
-    }
+    xTaskCreate(usbTask, "usb", 1024, NULL, 3, &hUsb);
+    xTaskCreate(clkFxn, "clkFxn", DEFAULT_STACK_SIZE, NULL, 2, &hClkFxn);
+    xTaskCreate(sensorTask, "Sensor", DEFAULT_STACK_SIZE, NULL, 2, &hSensorTask);
+    xTaskCreate(transmitTask, "Transmit", DEFAULT_STACK_SIZE, NULL, 2, &hTransmitTask);
+    //xTaskCreate(receiveTask, "Receive", DEFAULT_STACK_SIZE, NULL, 2, &hReceiveTask);
+    xTaskCreate(displayTask, "Display", DEFAULT_STACK_SIZE, NULL, 2, &hDisplayTask);
 
-    if (xTaskCreate(clkFxn, "clkFxn", DEFAULT_STACK_SIZE, NULL, 2, &hClkFxn) != pdPASS) {
-        printf("Clock Task creation failed\n");
-        return 0;
-    };
 
-    if (xTaskCreate(sensorTask, "Sensor", DEFAULT_STACK_SIZE, NULL, 2, &hSensorTask) != pdPASS) {
-        printf("Sensor Task creation failed\n");
-        return 0;
-    };
-
-    if( xTaskCreate(transmitTask, "Transmit", DEFAULT_STACK_SIZE, NULL, 2, &hTransmitTask) != pdPASS) {
-        printf("Transmit Task creation failed\n");
-        return 0
-        ;
-    };
-
-    if (xTaskCreate(receiveTask, "Receive", DEFAULT_STACK_SIZE, NULL, 2, &hReceiveTask) != pdPASS) {
-        printf("Receive Task creation failed\n");
-        return 0;
-    };
-
-    if (xTaskCreate(displayTask, "Display", DEFAULT_STACK_SIZE, NULL, 2, &hDisplayTask) != pdPASS) {
-        printf("Display Task creation failed\n");
-        return 0;
-    };
+    #if (configNUMBER_OF_CORES > 1)
+        vTaskCoreAffinitySet(hUsb, 1u << 0);
+    #endif
 
     // Init tiny usb
     tusb_init();
 
+    usb_serial_init();
     // Start the scheduler (never returns)
     vTaskStartScheduler();
 
