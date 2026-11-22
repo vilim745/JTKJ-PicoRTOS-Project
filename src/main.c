@@ -24,6 +24,7 @@
 #define CDC_ITF_DATA 1
 
 
+
 // Add here necessary states
 enum state
 {
@@ -43,12 +44,21 @@ char morse_code[MSG_BUFFER] = "";
 // Array for morse code received from computer
 char received_code[MSG_BUFFER] = "";
 
+static void debug_print(const char *msg) {
+    if (!usb_serial_connected()) {
+        return;
+    }
+
+    usb_serial_print(msg);
+    usb_serial_flush();
+}
+
 void clkFxn(void *pvParameters) {
     (void)pvParameters;
 
     while (1) {
         if (programState == IDLE && gpio_get(SW2_PIN) == 1) {
-            printf("Button pressed, starting to read sensor data\n");
+            debug_print("Button pressed, starting to read sensor data\n");
             toggle_led();
             vTaskDelay(pdMS_TO_TICKS(300));
             programState = READ_SENSOR;
@@ -70,17 +80,21 @@ void sensorTask(void *pvParameters)
     init_buzzer();
     init_display();
 
+    vTaskDelay(pdMS_TO_TICKS(100));
+    for (int i = 0; i < 30 && !usb_serial_connected(); i++) {
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+
 
     // Setting up the sensor. 
     if (init_ICM42670() == 0) {
-        printf("ICM-42670P initialized successfully!\n");
+        debug_print("ICM-42670P initialized successfully!\n");
         if (ICM42670_start_with_default_values() != 0) {
-            printf("ICM-42670P could not initialize accelerometer or gyroscope");
+            debug_print("ICM-42670P could not initialize accelerometer or gyroscope\n");
         }
     } else {
-        printf("Failed to initialize ICM-42670P.\n");
+        debug_print("Failed to initialize ICM-42670P.\n");
     }
-
 
     // Start collection data here. Infinite loop. 
     while (1)
@@ -91,20 +105,21 @@ void sensorTask(void *pvParameters)
             if (ICM42670_read_sensor_data(&ax, &ay, &az, &gx, &gy, &gz, &t) == 0) {
 
                 if (gpio_get(SW2_PIN) == 1) {
-                    printf("Button pressed, stopping sensor data collection\n");
+                    debug_print("Button pressed, stopping sensor data collection\n");
                     toggle_led();
-                    strcat(morse_code, "  \n");
                     programState = MSG_READY;
 
                 } else if (gx > 180.0f) {
 
                     if (strlen(morse_code) > 0) {
                         if (strlen(morse_code) < MSG_BUFFER - 2) {
-                            printf("SPACE\n");
+                            debug_print("SPACE\n");
                             strcat(morse_code, " ");
-                            printf("Morse code: %s\n", morse_code);
+                            char msg[128];
+                            snprintf(msg, sizeof(msg), "Morse code: %s\n", morse_code);
+                            debug_print(msg);
                         } else {
-                            printf("Morse code buffer full, cannot add space\n");
+                            debug_print("Morse code buffer full, cannot add space\n");
                         }
                     }
                     vTaskDelay(pdMS_TO_TICKS(300));
@@ -112,27 +127,31 @@ void sensorTask(void *pvParameters)
                 } else if (fabs(gz) > 200.0f) {
 
                     if (gz > 0) {
-                        printf("DOT (LEFT)\n");
+                        debug_print("DOT (LEFT)\n");
                         if (strlen(morse_code) < MSG_BUFFER - 2) {
                             strcat(morse_code, ".");
-                            printf("Morse code: %s\n", morse_code);
+                            char msg[128];
+                            snprintf(msg, sizeof(msg), "Morse code: %s\n", morse_code);
+                            debug_print(msg);
                         } else {
-                            printf("Morse code buffer full, cannot add dot\n");
+                            debug_print("Morse code buffer full, cannot add dot\n");
                         }
                         vTaskDelay(pdMS_TO_TICKS(300));
                     } else {
-                        printf("DASH (RIGHT)\n");
+                        debug_print("DASH (RIGHT)\n");
                         if (strlen(morse_code) < MSG_BUFFER - 2) {
                             strcat(morse_code, "-");
-                            printf("Morse code: %s\n", morse_code);
+                            char msg[128];
+                            snprintf(msg, sizeof(msg), "Morse code: %s\n", morse_code);
+                            debug_print(msg);
                         } else {
-                            printf("Morse code buffer full, cannot add dash\n");
+                            debug_print("Morse code buffer full, cannot add dash\n");
                         }
                         vTaskDelay(pdMS_TO_TICKS(300));
                     }
                 }
             } else {
-                printf("Failed to read imu data\n");
+                debug_print("Failed to read imu data\n");
             }
         }
         vTaskDelay(pdMS_TO_TICKS(50));
@@ -151,16 +170,13 @@ void transmitTask(void *pvParameters)
     {
         if (programState == MSG_READY) {
             if (tud_cdc_n_connected(CDC_ITF_DATA)){
-                printf("Transmitting morse code: %s", morse_code);
+                char msg[128];
+                snprintf(msg, sizeof(msg), "Transmitting morse code: %s\n", morse_code);
+                debug_print(msg);
                 // Lähetä tiedot käyttäen tud_cdc_n_write
                 tud_cdc_n_write(CDC_ITF_DATA, morse_code, strlen(morse_code));
                 tud_cdc_n_write_flush(CDC_ITF_DATA);
 
-                   if (usb_serial_connected()) {
-            snprintf(buf, MSG_BUFFER, "%s", morse_code);
-            usb_serial_print(buf);
-            usb_serial_flush();
-            }
                 vTaskDelay(pdMS_TO_TICKS(1000));
                 morse_code[0] = '\0';
             }
@@ -211,7 +227,9 @@ void displayTask(void *pvParameters)
 
         if (programState == UPDATE_OLED)
         {
-            printf("Received morse code: %s\n", received_code);
+            char msg[128];
+            snprintf(msg, sizeof(msg), "Received morse code: %s\n", received_code);
+            debug_print(msg);
 
             for (int i = 0; received_code[i] != '\0'; i++)
             {
