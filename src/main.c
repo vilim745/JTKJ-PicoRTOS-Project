@@ -284,26 +284,20 @@ void displayTask(void *pvParameters)
                     vTaskDelay(pdMS_TO_TICKS(100));
                 }
 
-                if (received_code[i] == ' '){
-                    char text[] = {morseToText(display_text)};
-                    write_text_xy(20, 20, text);
-
+                if (received_code[i] == ' ') {
+                    if (display_text[0] != '\0') {
+                        char text[] = {morseToText(display_text)};
+                        write_text_xy(20, 20, text);
+                    }
+                    
                     vTaskDelay(pdMS_TO_TICKS(500));
                     clear_display();
                     display_text[0] = '\0';
-                } else{
+                } else {
                     if (strlen(display_text) < MSG_BUFFER - 1){
                         strncat(display_text, &received_code[i], 1);
                     }
                 }
-            }
-
-            // Display the last sequence
-            if (strlen(display_text) > 0)
-            {
-                char text[] = {morseToText(display_text)};
-                write_text_xy(20, 20, text);
-                vTaskDelay(pdMS_TO_TICKS(500));
             }
 
             clear_display();
