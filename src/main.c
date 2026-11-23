@@ -72,9 +72,9 @@ const char *morseSymbols[] = {
     "--.."      // Z
 };
 
+// Turns morse symbol to letter
 char morseToText(char *symbol);
 
-// Turns morse symbol to letter
 char morseToText(char *symbol) {
     for (int i=0; i<26; i++) {
         if (strcmp(symbol, morseSymbols[i]) == 0) {
@@ -282,12 +282,13 @@ void displayTask(void *pvParameters)
                 }
 
                 if (received_code[i] == ' '){
-                    write_text(display_text);
+                    write_text_xy(0, 0, display_text);
+                    write_text_xy(0, 20, morseToText(display_text));
                     vTaskDelay(pdMS_TO_TICKS(500));
                     clear_display();
                     display_text[0] = '\0';
-                } else{
-                    if (strlen(display_text) < MSG_BUFFER - 1){
+                } else {
+                    if (strlen(display_text) < MSG_BUFFER - 1) {
                         strncat(display_text, &received_code[i], 1);
                     }
                 }
@@ -296,7 +297,8 @@ void displayTask(void *pvParameters)
             // Display the last sequence
             if (strlen(display_text) > 0)
             {
-                write_text(display_text);
+                write_text_xy(0, 0, display_text);
+                write_text_xy(0, 20, morseToText(display_text));
                 vTaskDelay(pdMS_TO_TICKS(500));
             }
 
