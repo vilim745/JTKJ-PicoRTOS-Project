@@ -1,5 +1,5 @@
 /*
-Authors: ...
+Authors: Vili Mannermaa 2507250, ...
 */
 
 #include <stdio.h>
@@ -117,6 +117,7 @@ void clkFxn(void *pvParameters) {
 void sensorTask(void *pvParameters)
 {
     (void)pvParameters;
+
     float ax, ay, az, gx, gy, gz, t;
 
     init_hat_sdk();
@@ -220,7 +221,6 @@ void transmitTask(void *pvParameters) {
                 char msg[MSG_BUFFER];
                 snprintf(msg, sizeof(msg), "Transmitting morse code: %s", morse_code);
                 debug_print(msg);
-                buzzer_play_tone(440, 300);
 
                 tud_cdc_n_write(CDC_ITF_DATA, morse_code, strlen(morse_code));
                 tud_cdc_n_write_flush(CDC_ITF_DATA);
@@ -249,13 +249,13 @@ void tud_cdc_rx_cb(uint8_t itf) {
                 continue;
             }
 
-            if (buf[i] == '\n') {
+            if (buf[i] == '\n') { // checks for newline character to determine end of message
                 received_code[index] = '\0';
                 index = 0;
-
                 programState = UPDATE_OLED;
+
             } else if (index < MSG_BUFFER - 1) {
-                received_code[index++] = (char)buf[i];
+                received_code[index++] = (char)buf[i]; // Writes into received_code array
             }
         }
     }
@@ -275,6 +275,8 @@ void displayTask(void *pvParameters) {
             debug_print(msg);
         
             for (int i = 0; received_code[i] != '\0'; i++) {
+
+                // Buzzer feedback for dot and dash
                 if (received_code[i] == '.') {
                     buzzer_play_tone(440, 100);
                     vTaskDelay(pdMS_TO_TICKS(100));
@@ -283,18 +285,19 @@ void displayTask(void *pvParameters) {
                     vTaskDelay(pdMS_TO_TICKS(100));
                 }
 
-                if (received_code[i] == ' ') {
+
+                if (received_code[i] == ' ') { // Checks for space character to determine end of morse code letter
                     if (display_text[0] != '\0') {
                         char text[MSG_BUFFER];
                         snprintf(text, sizeof(text), "%c %s", morseToText(display_text), display_text);
                         write_text_xy(20, 20, text);
                     }
-                    vTaskDelay(pdMS_TO_TICKS(500));
+                    vTaskDelay(pdMS_TO_TICKS(100));
                     clear_display();
                     display_text[0] = '\0';
                 } else {
                     if (strlen(display_text) < MSG_BUFFER - 1){
-                        strncat(display_text, &received_code[i], 1);
+                        strncat(display_text, &received_code[i], 1); // Adds the morse code character to display_text
                     }
                 }
             }
@@ -304,7 +307,7 @@ void displayTask(void *pvParameters) {
             programState = IDLE;
         }
 
-        vTaskDelay(pdMS_TO_TICKS(200));
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
 }
 
