@@ -43,7 +43,7 @@ char morse_code[MSG_BUFFER] = "";
 char received_code[MSG_BUFFER] = "";
 
 // Morse symbols for letters
-const char *morseSymbols[] = {
+const char *morseSymbols[26] = {
     ".-",       // A
     "-...",     // B
     "-.-.",     // C
@@ -75,9 +75,9 @@ const char *morseSymbols[] = {
  // Prototypes
 static void debug_print(const char *msg);
 // Turns morse symbol to letter
-char morseToText(char *symbol);
+char morseToText(const char *symbol);
 
-char morseToText(char *symbol) {
+char morseToText(const char *symbol) {
     for (int i=0; i<26; i++) {
         if (strcmp(symbol, morseSymbols[i]) == 0) {
             return (char) (i + 65); // ASCII code for character (A = 65 ... Z = 90)
@@ -216,6 +216,7 @@ void transmitTask(void *pvParameters)
                 char msg[MSG_BUFFER];
                 snprintf(msg, sizeof(msg), "Transmitting morse code: %s", morse_code);
                 debug_print(msg);
+                buzzer_play_tone(440, 300);
                 // Lähetä tiedot käyttäen tud_cdc_n_write
                 tud_cdc_n_write(CDC_ITF_DATA, morse_code, strlen(morse_code));
                 tud_cdc_n_write_flush(CDC_ITF_DATA);
@@ -231,33 +232,33 @@ void transmitTask(void *pvParameters)
 }
 
 
-// !!! CHANGE TO USE tud_cdc_rx_cb (example in 5. sarjaliikenne) !!!
-/*void receiveTask(void *pvParameters)
+void tud_cdc_rx_cb(uint8_t itf)
 {
-    // Receives morse-code message from the computer using USB
+    uint8_t buf[CFG_TUD_CDC_RX_BUFSIZE + 1];
+    static size_t index = 0;
 
-    (void)pvParameters;
-    int index = 0;
+    uint32_t count = tud_cdc_n_read(itf, buf, sizeof(buf));
 
-    while (1)
-    {
-        if (programState == IDLE) {
-            int ch = getchar_timeout_us(10); 
-            if (ch >= 0) {
-                putchar((char)ch);           
+    if (itf == CDC_ITF_DATA) {
 
-                if (ch == '\n') {
-                    received_code[index] = '\0';
-                    programState = UPDATE_OLED;
-                    index = 0;
-                    } else if (index < MSG_BUFFER - 1) {
-                        received_code[index++] = (char)ch; 
-                }
+        for (int i = 0; i < count; i++) {
+
+            if (programState != IDLE) {
+                continue;
             }
-        }  
-        vTaskDelay(pdMS_TO_TICKS(200));
+
+            if (buf[i] == '\n') {
+                received_code[index] = '\0';
+                index = 0;
+
+                programState = UPDATE_OLED;
+            }
+            else if (index < MSG_BUFFER - 1) {
+                received_code[index++] = (char)buf[i];
+            }
+        }
     }
-}*/
+}
 
 void displayTask(void *pvParameters)
 {  
@@ -273,7 +274,7 @@ void displayTask(void *pvParameters)
             char msg[MSG_BUFFER];
             snprintf(msg, sizeof(msg), "Received morse code: %s\n", received_code);
             debug_print(msg);
-
+        
             for (int i = 0; received_code[i] != '\0'; i++) {
                 if (received_code[i] == '.') {
                     buzzer_play_tone(440, 100);
@@ -284,13 +285,14 @@ void displayTask(void *pvParameters)
                 }
 
                 if (received_code[i] == ' '){
-                    write_text_xy(0, 0, display_text);
-                    write_text_xy(0, 20, morseToText(display_text));
+                    char text[] = {morseToText(display_text)};
+                    write_text_xy(20, 20, text);
+
                     vTaskDelay(pdMS_TO_TICKS(500));
                     clear_display();
                     display_text[0] = '\0';
-                } else {
-                    if (strlen(display_text) < MSG_BUFFER - 1) {
+                } else{
+                    if (strlen(display_text) < MSG_BUFFER - 1){
                         strncat(display_text, &received_code[i], 1);
                     }
                 }
@@ -299,8 +301,8 @@ void displayTask(void *pvParameters)
             // Display the last sequence
             if (strlen(display_text) > 0)
             {
-                write_text_xy(0, 0, display_text);
-                write_text_xy(0, 20, morseToText(display_text));
+                char text[] = {morseToText(display_text)};
+                write_text_xy(20, 20, text);
                 vTaskDelay(pdMS_TO_TICKS(500));
             }
 
@@ -328,7 +330,6 @@ int main(void)
 
     TaskHandle_t hSensorTask = NULL;
     TaskHandle_t hTransmitTask = NULL;
-    TaskHandle_t hReceiveTask = NULL;
     TaskHandle_t hDisplayTask = NULL;
     TaskHandle_t hClkFxn = NULL;
     TaskHandle_t hUsb = NULL;
@@ -338,7 +339,6 @@ int main(void)
     xTaskCreate(clkFxn, "clkFxn", DEFAULT_STACK_SIZE, NULL, 2, &hClkFxn);
     xTaskCreate(sensorTask, "Sensor", DEFAULT_STACK_SIZE, NULL, 2, &hSensorTask);
     xTaskCreate(transmitTask, "Transmit", DEFAULT_STACK_SIZE, NULL, 2, &hTransmitTask);
-    //xTaskCreate(receiveTask, "Receive", DEFAULT_STACK_SIZE, NULL, 2, &hReceiveTask);
     xTaskCreate(displayTask, "Display", DEFAULT_STACK_SIZE, NULL, 2, &hDisplayTask);
 
 

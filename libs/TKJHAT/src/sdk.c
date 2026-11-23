@@ -350,7 +350,7 @@ void write_text_xy(int16_t x0, int16_t y0, const char *text) {
     if (x0 < 0) x0 = 0;
     if (y0 < 0) y0 = 0;
 
-    const uint8_t scale = 1; //Default font scale is 1
+    const uint8_t scale = 2; //Default font scale is 1
 
     ssd1306_draw_string(&disp, (uint32_t)x0, (uint32_t)y0, scale, text);
     ssd1306_show(&disp);
