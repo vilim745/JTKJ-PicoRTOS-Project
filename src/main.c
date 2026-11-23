@@ -19,6 +19,7 @@
 #define DEFAULT_STACK_SIZE 2048 
 
 #define MSG_BUFFER 128
+#define ALPHABET 26
 
 #define CDC_ITF_DEBUG 0 // Not used here directly, only for clarification
 #define CDC_ITF_DATA 1 // Data port
@@ -43,7 +44,7 @@ char morse_code[MSG_BUFFER] = "";
 char received_code[MSG_BUFFER] = "";
 
 // Morse symbols for letters
-const char *morseSymbols[26] = {
+const char *morseSymbols[ALPHABET] = {
     ".-",       // A
     "-...",     // B
     "-.-.",     // C
@@ -75,9 +76,9 @@ const char *morseSymbols[26] = {
 // Turns morse symbols to letters
 char morseToText(const char *symbol) {
 
-    for (int i=0; i<26; i++) {
+    for (int i=0; i<ALPHABET; i++) {
         if (strcmp(symbol, morseSymbols[i]) == 0) {
-            return (char) (i + 65); // ASCII code for character (A = 65 ... Z = 90)
+            return (char) (i + 'A'); // ASCII code for character (A = 65 ... Z = 90)
         }
     }
     return '?'; // Symbol not recognized
@@ -329,7 +330,7 @@ int main(void) {
     TaskHandle_t hUsb = NULL;
 
 
-    xTaskCreate(usbTask, "usb", 1024, NULL, 3, &hUsb);
+    xTaskCreate(usbTask, "usb", DEFAULT_STACK_SIZE, NULL, 3, &hUsb);
     xTaskCreate(clkFxn, "clkFxn", DEFAULT_STACK_SIZE, NULL, 2, &hClkFxn);
     xTaskCreate(sensorTask, "Sensor", DEFAULT_STACK_SIZE, NULL, 2, &hSensorTask);
     xTaskCreate(transmitTask, "Transmit", DEFAULT_STACK_SIZE, NULL, 2, &hTransmitTask);
