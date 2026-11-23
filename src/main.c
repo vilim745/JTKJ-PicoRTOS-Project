@@ -159,7 +159,7 @@ void sensorTask(void *pvParameters)
                 } else if (gx > 180.0f) {
 
                     if (strlen(morse_code) > 0) {
-                        if (strlen(morse_code) < MSG_BUFFER - 2) {
+                        if (strlen(morse_code) < MSG_BUFFER - 4) {
                             debug_print("SPACE\n");
                             strcat(morse_code, " ");
                             char msg[MSG_BUFFER];
@@ -175,7 +175,7 @@ void sensorTask(void *pvParameters)
 
                     if (gz > 0) {
                         debug_print("DOT (LEFT)\n");
-                        if (strlen(morse_code) < MSG_BUFFER - 2) {
+                        if (strlen(morse_code) < MSG_BUFFER - 4) {
                             strcat(morse_code, ".");
                             char msg[MSG_BUFFER];
                             snprintf(msg, sizeof(msg), "Morse code: %s\n", morse_code);
@@ -186,7 +186,7 @@ void sensorTask(void *pvParameters)
                         vTaskDelay(pdMS_TO_TICKS(300));
                     } else {
                         debug_print("DASH (RIGHT)\n");
-                        if (strlen(morse_code) < MSG_BUFFER - 2) {
+                        if (strlen(morse_code) < MSG_BUFFER - 4) {
                             strcat(morse_code, "-");
                             char msg[MSG_BUFFER];
                             snprintf(msg, sizeof(msg), "Morse code: %s\n", morse_code);
@@ -286,7 +286,8 @@ void displayTask(void *pvParameters)
 
                 if (received_code[i] == ' ') {
                     if (display_text[0] != '\0') {
-                        char text[] = {morseToText(display_text)}; // {morseToText(display_text), '\0'}
+                        char text[MSG_BUFFER];
+                        snprintf(text, sizeof(text), "%c %s", morseToText(display_text), display_text);
                         write_text_xy(20, 20, text);
                     }
                     vTaskDelay(pdMS_TO_TICKS(500));
