@@ -1,3 +1,6 @@
+/*
+Authors: ...
+*/
 
 #include <stdio.h>
 #include <string.h>
@@ -221,9 +224,8 @@ void transmitTask(void *pvParameters) {
 
                 tud_cdc_n_write(CDC_ITF_DATA, morse_code, strlen(morse_code));
                 tud_cdc_n_write_flush(CDC_ITF_DATA);
-
-                vTaskDelay(pdMS_TO_TICKS(1000));
-                
+                buzzer_play_tone(466, 150);
+                buzzer_play_tone(932, 150);
             }
             morse_code[0] = '\0';
             programState = IDLE;      
@@ -242,9 +244,7 @@ void tud_cdc_rx_cb(uint8_t itf) {
     uint32_t count = tud_cdc_n_read(itf, buf, sizeof(buf));
 
     if (itf == CDC_ITF_DATA) {
-
         for (int i = 0; i < count; i++) {
-
             if (programState != IDLE) {
                 continue;
             }
@@ -254,8 +254,7 @@ void tud_cdc_rx_cb(uint8_t itf) {
                 index = 0;
 
                 programState = UPDATE_OLED;
-            }
-            else if (index < MSG_BUFFER - 1) {
+            } else if (index < MSG_BUFFER - 1) {
                 received_code[index++] = (char)buf[i];
             }
         }
@@ -267,11 +266,10 @@ void displayTask(void *pvParameters) {
 
     (void)pvParameters;
 
-    while (1)
-    {
-        char display_text[MSG_BUFFER] = "";
-
+    while (1) {
+        
         if (programState == UPDATE_OLED) {
+            char display_text[MSG_BUFFER] = "";
             char msg[MSG_BUFFER];
             snprintf(msg, sizeof(msg), "Received morse code: %s\n", received_code);
             debug_print(msg);
@@ -291,7 +289,6 @@ void displayTask(void *pvParameters) {
                         snprintf(text, sizeof(text), "%c %s", morseToText(display_text), display_text);
                         write_text_xy(20, 20, text);
                     }
-                    
                     vTaskDelay(pdMS_TO_TICKS(500));
                     clear_display();
                     display_text[0] = '\0';
