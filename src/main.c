@@ -16,11 +16,12 @@
 
 
 // Default stack size for the tasks. It can be reduced to 1024 if task is not using lot of memory.
-#define DEFAULT_STACK_SIZE 2048
+#define DEFAULT_STACK_SIZE 2048 
+
 #define MSG_BUFFER 128
 
-#define CDC_ITF_DEBUG 0
-#define CDC_ITF_DATA 1
+#define CDC_ITF_DEBUG 0 // Not used here directly, only for clarification
+#define CDC_ITF_DATA 1 // Data port
 
 
 
@@ -29,7 +30,6 @@ enum state
     IDLE = 1,
     READ_SENSOR,
     MSG_READY,
-    NEW_MSG,
     UPDATE_OLED
 };
 
@@ -72,12 +72,9 @@ const char *morseSymbols[26] = {
     "--.."      // Z
 };
 
- // Prototypes
-static void debug_print(const char *msg);
-// Turns morse symbol to letter
-char morseToText(const char *symbol);
-
+// Turns morse symbols to letters
 char morseToText(const char *symbol) {
+
     for (int i=0; i<26; i++) {
         if (strcmp(symbol, morseSymbols[i]) == 0) {
             return (char) (i + 65); // ASCII code for character (A = 65 ... Z = 90)
@@ -95,9 +92,9 @@ static void debug_print(const char *msg) {
     usb_serial_print(msg);
     usb_serial_flush();
 }
-
+// Clock function to check button press and change program state
 void clkFxn(void *pvParameters) {
-    // Clock function to check button press and change program state
+    
     (void)pvParameters;
 
     while (1) {
@@ -111,9 +108,10 @@ void clkFxn(void *pvParameters) {
     }
 }
 
+
+// Collects data from movement-sensor and recognizes movement commands
 void sensorTask(void *pvParameters)
 {
-    // Collects data from movement-sensor and recognizes movement commands
     (void)pvParameters;
     float ax, ay, az, gx, gy, gz, t;
 
@@ -202,12 +200,14 @@ void sensorTask(void *pvParameters)
     }
 }
 
-void transmitTask(void *pvParameters)
-{
-    // Sends morse-code to the computer using USB
-    char buf[MSG_BUFFER] = ""; 
+
+// Sends morse-code to the computer using USB
+// Stdio usb support needs to be disabled and usb-serial-debug linked and added as subdirectory
+void transmitTask(void *pvParameters) {
+
     (void)pvParameters;
 
+    char buf[MSG_BUFFER] = ""; 
 
     while (1)
     {
@@ -217,14 +217,14 @@ void transmitTask(void *pvParameters)
                 snprintf(msg, sizeof(msg), "Transmitting morse code: %s", morse_code);
                 debug_print(msg);
                 buzzer_play_tone(440, 300);
-                // Lähetä tiedot käyttäen tud_cdc_n_write
+
                 tud_cdc_n_write(CDC_ITF_DATA, morse_code, strlen(morse_code));
                 tud_cdc_n_write_flush(CDC_ITF_DATA);
 
                 vTaskDelay(pdMS_TO_TICKS(1000));
-                morse_code[0] = '\0';
+                
             }
-
+            morse_code[0] = '\0';
             programState = IDLE;      
         } 
     vTaskDelay(pdMS_TO_TICKS(500));
@@ -232,8 +232,9 @@ void transmitTask(void *pvParameters)
 }
 
 
-void tud_cdc_rx_cb(uint8_t itf)
-{
+// Receive data using USB, invoked on its own
+void tud_cdc_rx_cb(uint8_t itf) {
+
     uint8_t buf[CFG_TUD_CDC_RX_BUFSIZE + 1];
     static size_t index = 0;
 
@@ -260,10 +261,9 @@ void tud_cdc_rx_cb(uint8_t itf)
     }
 }
 
-void displayTask(void *pvParameters)
-{  
-    
-    // Displays the received message on the screen
+// Displays the received message on the screen
+void displayTask(void *pvParameters) {  
+
     (void)pvParameters;
 
     while (1)
@@ -320,8 +320,7 @@ static void usbTask(void *arg) {
 }
 
 
-int main(void)
-{
+int main(void) {
 
     TaskHandle_t hSensorTask = NULL;
     TaskHandle_t hTransmitTask = NULL;
