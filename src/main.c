@@ -42,6 +42,47 @@ char morse_code[MSG_BUFFER] = "";
 // Array for morse code received from computer
 char received_code[MSG_BUFFER] = "";
 
+// Morse symbols for letters
+const char *morseSymbols[] = {
+    ".-",       // A
+    "-...",     // B
+    "-.-.",     // C
+    "-..",      // D
+    ".",        // E
+    "..-.",     // F
+    "--.",      // G
+    "....",     // H
+    "..",       // I
+    ".---",     // J
+    "-.-",      // K
+    ".-..",     // L
+    "--",       // M
+    "-.",       // N
+    "---",      // O
+    ".--.",     // P
+    "--.-",     // Q
+    ".-.",      // R
+    "...",      // S
+    "-",        // T
+    "..-",      // U
+    "...-",     // V
+    ".--",      // W
+    "-..-",     // X
+    "-.--",     // Y
+    "--.."      // Z
+};
+
+char morseToText(char *symbol);
+
+// Turns morse symbol to letter
+char morseToText(char *symbol) {
+    for (int i=0; i<26; i++) {
+        if (strcmp(symbol, morseSymbols[i]) == 0) {
+            return (char) (i + 65); // ASCII code for character (A = 65 ... Z = 90)
+        }
+    }
+    return '?'; // Symbol not recognized
+}
 
 // Function to print debug messages to USB serial if connected
 static void debug_print(const char *msg) {
@@ -226,15 +267,12 @@ void displayTask(void *pvParameters)
     {
         char display_text[MSG_BUFFER] = "";
 
-        if (programState == UPDATE_OLED)
-        {
+        if (programState == UPDATE_OLED) {
             char msg[128];
             snprintf(msg, sizeof(msg), "Received morse code: %s\n", received_code);
             debug_print(msg);
 
-            for (int i = 0; received_code[i] != '\0'; i++)
-            {
-                //BUZZER STARTS
+            for (int i = 0; received_code[i] != '\0'; i++) {
                 if (received_code[i] == '.') {
                     buzzer_play_tone(440, 100);
                     vTaskDelay(pdMS_TO_TICKS(100));
@@ -242,18 +280,14 @@ void displayTask(void *pvParameters)
                     buzzer_play_tone(440, 300);
                     vTaskDelay(pdMS_TO_TICKS(100));
                 }
-                //BUZZER ENDS
-                if (received_code[i] == ' ')
-                {
+
+                if (received_code[i] == ' '){
                     write_text(display_text);
                     vTaskDelay(pdMS_TO_TICKS(500));
                     clear_display();
                     display_text[0] = '\0';
-                }
-                else
-                {
-                    if (strlen(display_text) < MSG_BUFFER - 1)
-                    {
+                } else{
+                    if (strlen(display_text) < MSG_BUFFER - 1){
                         strncat(display_text, &received_code[i], 1);
                     }
                 }
