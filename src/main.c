@@ -17,7 +17,7 @@
 
 // Default stack size for the tasks. It can be reduced to 1024 if task is not using lot of memory.
 #define DEFAULT_STACK_SIZE 2048
-#define MSG_BUFFER 100
+#define MSG_BUFFER 128
 
 #define CDC_ITF_DEBUG 0
 #define CDC_ITF_DATA 1
@@ -72,6 +72,8 @@ const char *morseSymbols[] = {
     "--.."      // Z
 };
 
+ // Prototypes
+static void debug_print(const char *msg);
 // Turns morse symbol to letter
 char morseToText(char *symbol);
 
@@ -157,7 +159,7 @@ void sensorTask(void *pvParameters)
                         if (strlen(morse_code) < MSG_BUFFER - 2) {
                             debug_print("SPACE\n");
                             strcat(morse_code, " ");
-                            char msg[128];
+                            char msg[MSG_BUFFER];
                             snprintf(msg, sizeof(msg), "Morse code: %s\n", morse_code);
                             debug_print(msg);
                         } else {
@@ -172,7 +174,7 @@ void sensorTask(void *pvParameters)
                         debug_print("DOT (LEFT)\n");
                         if (strlen(morse_code) < MSG_BUFFER - 2) {
                             strcat(morse_code, ".");
-                            char msg[128];
+                            char msg[MSG_BUFFER];
                             snprintf(msg, sizeof(msg), "Morse code: %s\n", morse_code);
                             debug_print(msg);
                         } else {
@@ -183,7 +185,7 @@ void sensorTask(void *pvParameters)
                         debug_print("DASH (RIGHT)\n");
                         if (strlen(morse_code) < MSG_BUFFER - 2) {
                             strcat(morse_code, "-");
-                            char msg[128];
+                            char msg[MSG_BUFFER];
                             snprintf(msg, sizeof(msg), "Morse code: %s\n", morse_code);
                             debug_print(msg);
                         } else {
@@ -211,7 +213,7 @@ void transmitTask(void *pvParameters)
     {
         if (programState == MSG_READY) {
             if (tud_cdc_n_connected(CDC_ITF_DATA)){
-                char msg[128];
+                char msg[MSG_BUFFER];
                 snprintf(msg, sizeof(msg), "Transmitting morse code: %s", morse_code);
                 debug_print(msg);
                 // Lähetä tiedot käyttäen tud_cdc_n_write
@@ -268,7 +270,7 @@ void displayTask(void *pvParameters)
         char display_text[MSG_BUFFER] = "";
 
         if (programState == UPDATE_OLED) {
-            char msg[128];
+            char msg[MSG_BUFFER];
             snprintf(msg, sizeof(msg), "Received morse code: %s\n", received_code);
             debug_print(msg);
 
