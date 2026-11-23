@@ -279,10 +279,10 @@ void displayTask(void *pvParameters) {
                 // Buzzer feedback for dot and dash
                 if (received_code[i] == '.') {
                     buzzer_play_tone(440, 100);
-                    vTaskDelay(pdMS_TO_TICKS(100));
+                    vTaskDelay(pdMS_TO_TICKS(150));
                 } else if (received_code[i] == '-') {
                     buzzer_play_tone(440, 300);
-                    vTaskDelay(pdMS_TO_TICKS(100));
+                    vTaskDelay(pdMS_TO_TICKS(150));
                 }
 
 
@@ -307,7 +307,7 @@ void displayTask(void *pvParameters) {
             programState = IDLE;
         }
 
-        vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelay(pdMS_TO_TICKS(150));
     }
 }
 
