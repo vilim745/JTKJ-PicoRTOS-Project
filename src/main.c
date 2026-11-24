@@ -17,6 +17,7 @@ Authors: Vili Mannermaa 2507250, Jasu Känsälä 2410201, Elias Mela 2507227
 #include "tkjhat/sdk.h"
 #include "usbSerialDebug/helper.h"
 
+/*-------- CONSTANTS---------*/
 
 // Default stack size for the tasks.
 #define DEFAULT_STACK_SIZE 2048 
@@ -42,23 +43,13 @@ enum state
 volatile enum state programState = IDLE;
 
 // Tells clockTask new message has been received
-bool INCOMING_MSG = 0; 
+bool INCOMING_MSG = false; 
 
 // Array for morse code from sensor
 char morse_code[MSG_BUFFER] = "";
 
 // Array for morse code received from computer
 char received_code[MSG_BUFFER] = "";
-
-
-
-char morseToText(const char *symbol);
-static void playBuzzer(char symbol);
-static void init_all(void);
-static void addSymbol(char symbol);
-static void sensorMovement(float gx, float gz);
-static void debug_print(char *trail, const char *message);
-
 
 // Morse symbols for letters
 const char *morseSymbols[ALPHABET] = {
@@ -89,6 +80,7 @@ const char *morseSymbols[ALPHABET] = {
     "-.--",     // Y
     "--.."      // Z
 };
+
 
 /*-------- FUNCTION PROTOTYPES ---------*/
 
@@ -235,6 +227,7 @@ void clockTask(void *pvParameters) {
                 programState = READ_SENSOR;
             } else if (INCOMING_MSG) {
                 programState = UPDATE_OLED;
+                INCOMING_MSG = false;
             }
         }
         vTaskDelay(pdMS_TO_TICKS(50));
