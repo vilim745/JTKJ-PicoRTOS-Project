@@ -27,8 +27,11 @@ Authors: Vili Mannermaa 2507250, Jasu Känsälä 2410201, Elias Mela 2507227
 #define CDC_ITF_DEBUG 0 // Not used here directly, only for clarification
 #define CDC_ITF_DATA 1 // Data port
 
-#define TRANSMIT_SOUND 'T'
-
+#define DASH '-'
+#define DOT '.'
+#define SPACE ' '
+#define GX_THRESHOLD 180.0f
+#define GZ_THRESHOLD 200.0f
 
 /*-------- GLOBAL VARIABLES ---------*/
 
@@ -39,6 +42,7 @@ enum state
     MSG_READY,
     UPDATE_OLED
 };
+
 volatile enum state programState = IDLE;
 
 // Tells clockTask new message has been received
@@ -49,16 +53,6 @@ char morse_code[MSG_BUFFER] = "";
 
 // Array for morse code received from computer
 char received_code[MSG_BUFFER] = "";
-
-
-
-char morseToText(const char *symbol);
-static void playBuzzer(char symbol);
-static void init_all(void);
-static void addSymbol(char symbol);
-static void sensorMovement(float gx, float gz);
-static void debug_print(char *trail, const char *message);
-
 
 // Morse symbols for letters
 const char *morseSymbols[ALPHABET] = {
@@ -92,7 +86,7 @@ const char *morseSymbols[ALPHABET] = {
 
 /*-------- FUNTION PROTOTYPES ---------*/
 
-char morseToText(const char *symbol);
+static char morseToText(const char *symbol);
 static void playBuzzer(char symbol);
 static void init_all(void);
 static void addSymbol(char symbol);
@@ -103,9 +97,9 @@ static void debug_print(char *trail, const char *message);
 /* ---------- FUNCTIONS --------------*/
 
 // Turns morse symbols to letters
-char morseToText(const char *symbol) {
+static char morseToText(const char *symbol) {
     
-    for (int i=0; i<ALPHABET; i++) {
+    for (uint8_t i=0; i<ALPHABET; i++) {
         if (strcmp(symbol, morseSymbols[i]) == 0) {
             return (char) (i + 'A'); // ASCII code for character (A = 65 ... Z = 90)
         }
@@ -115,23 +109,22 @@ char morseToText(const char *symbol) {
 
 // Plays buzzer sounds
 static void playBuzzer(char symbol) {
-    if (symbol == '.') {
+    if (symbol == DOT) {
         // Play the dot tone
         buzzer_play_tone(440, 100);
         vTaskDelay(pdMS_TO_TICKS(150));
 
-    } else if (symbol == '-') {
+    } else if (symbol == DASH) {
         // Play the dash tone
         buzzer_play_tone(440, 300);
         vTaskDelay(pdMS_TO_TICKS(150));
         
-    } else if (symbol == 'T') {
+    } else {
         // Play the tone for sending a message
         buzzer_play_tone(460, 150);
         buzzer_play_tone(950, 150);
     }
 }
-
 
 static void init_all(void) {
     init_hat_sdk();
@@ -144,7 +137,7 @@ static void init_all(void) {
 }
 
 static void addSymbol(char symbol) { 
-    int count = strlen(morse_code);
+    uint8_t count = strlen(morse_code);
 
     if (count < MSG_BUFFER - 4) {
         morse_code[count] = symbol;
@@ -158,26 +151,26 @@ static void addSymbol(char symbol) {
 
 static void sensorMovement(float gx, float gz) {
 
-    if (gx > 180.0f) { // Up movement
+    if (gx > GX_THRESHOLD) { // Up movement
 
         if (strlen(morse_code) > 0) {  
 
             debug_print(NULL, "SPACE");
-            addSymbol(' ');    // Add space to morse
+            addSymbol(SPACE);    // Add space to morse
             vTaskDelay(pdMS_TO_TICKS(300));
         }
 
-    } else if (fabs(gz) > 200.0f) { // sideways movement
+    } else if (fabs(gz) > GZ_THRESHOLD) { // sideways movement
 
         if (gz > 0) { // left
 
             debug_print(NULL, "DOT (LEFT)");
-            addSymbol('.');
+            addSymbol(DOT);
 
         } else { // right
 
             debug_print(NULL, "DASH (RIGHT)");
-            addSymbol('-');
+            addSymbol(DASH);
             
         }
         vTaskDelay(pdMS_TO_TICKS(300));
@@ -206,11 +199,11 @@ void tud_cdc_rx_cb(uint8_t itf) {
     uint32_t count = tud_cdc_n_read(itf, buf, sizeof(buf));
 
     if (itf == CDC_ITF_DATA) {
-        for (int i = 0; i < count; i++) {
+        for (uint8_t i = 0; i < count; i++) {
             if (buf[i] == '\n') { // checks for newline character to determine end of message
                 received_code[index] = '\0';
                 index = 0;
-                INCOMING_MSG = 1; // Tell clock task new message is received
+                INCOMING_MSG = true; // Tell clock task new message is received
             } else if (index < MSG_BUFFER - 1) {
                 received_code[index++] = (char)buf[i]; // Writes into received_code array
             }
@@ -241,13 +234,13 @@ void clockTask(void *pvParameters) {
 
 
 // Collects data from movement-sensor and interprets commands
-void sensorTask(void *pvParameters) {
+static void sensorTask(void *pvParameters) {
     (void)pvParameters;
 
     float ax, ay, az, gx, gy, gz, t;
 
     vTaskDelay(pdMS_TO_TICKS(100));
-    for (int i = 0; i < 30 && !usb_serial_connected(); i++) {
+    for (uint8_t i = 0; i < 30 && !usb_serial_connected(); i++) {
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 
@@ -306,7 +299,7 @@ void transmitTask(void *pvParameters) {
 
                 tud_cdc_n_write(CDC_ITF_DATA, morse_code, strlen(morse_code));
                 tud_cdc_n_write_flush(CDC_ITF_DATA);
-                playBuzzer(TRANSMIT_SOUND); // Transmit sound feedback
+                playBuzzer(' '); // Transmit sound feedback
 
             }
             morse_code[0] = '\0';
@@ -328,12 +321,12 @@ void displayTask(void *pvParameters) {
 
             debug_print("Received morse code: ", received_code);
         
-            for (int i = 0; received_code[i] != '\0'; i++) {
+            for (uint8_t i = 0; received_code[i] != '\0'; i++) {
 
                 // Buzzer feedback for dot and dash
                 playBuzzer(received_code[i]);
             
-                if (received_code[i] == ' ') { // Checks for space character to determine end of morse code letter
+                if (received_code[i] == SPACE) { // Checks for space character to determine end of morse code letter
                     if (display_text[0] != '\0') {
                         char text[MSG_BUFFER];   
                         snprintf(text, sizeof(text), "%c %s", morseToText(display_text), display_text);
