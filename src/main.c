@@ -27,6 +27,7 @@ Authors: Vili Mannermaa 2507250, Jasu Känsälä 2410201, Elias Mela 2507227
 #define CDC_ITF_DEBUG 0 // Not used here directly, only for clarification
 #define CDC_ITF_DATA 1 // Data port
 
+#define TRANSMIT_SOUND 'T'
 
 
 enum state
@@ -87,18 +88,18 @@ char morseToText(const char *symbol) {
     return '?'; // Symbol not recognized
 }
 
-static void playBuzzer(char *Symbol) {
-    if (Symbol == ".") {
+static void playBuzzer(char *symbol) {
+    if (symbol == ".") {
         // Play the dot tone
         buzzer_play_tone(440, 100);
         vTaskDelay(pdMS_TO_TICKS(150));
 
-    } else if (Symbol == "-") {
+    } else if (symbol == "-") {
         // Play the dash tone
         buzzer_play_tone(440, 300);
         vTaskDelay(pdMS_TO_TICKS(150));
 
-    } else if (Symbol == "T") {
+    } else if (symbol == "T") {
         // Play the tone for sending a message
         buzzer_play_tone(460, 150);
         buzzer_play_tone(950, 150);
@@ -128,6 +129,8 @@ void clkFxn(void *pvParameters) {
     
     (void)pvParameters;
 
+    init_all();
+
     while (1) {
         if (programState == IDLE && gpio_get(SW2_PIN) == 1) {
             debug_print("Button pressed, starting to read sensor data\n");
@@ -146,8 +149,7 @@ void sensorTask(void *pvParameters)
     (void)pvParameters;
 
     float ax, ay, az, gx, gy, gz, t;
-
-    init_all();
+    
 
     vTaskDelay(pdMS_TO_TICKS(100));
     for (int i = 0; i < 30 && !usb_serial_connected(); i++) { // waits for usb connection
@@ -247,7 +249,7 @@ void transmitTask(void *pvParameters) {
 
                 tud_cdc_n_write(CDC_ITF_DATA, morse_code, strlen(morse_code));
                 tud_cdc_n_write_flush(CDC_ITF_DATA);
-                playBuzzer("T"); // Transmit sound feedback
+                playBuzzer(TRANSMIT_SOUND); // Transmit sound feedback
 
             }
             morse_code[0] = '\0';
@@ -301,11 +303,10 @@ void displayTask(void *pvParameters) {
 
                 // Buzzer feedback for dot and dash
                 playBuzzer(&received_code[i]);
-                
-
-                if (received_code[i] == ' ') { // Checks for space character to determine end of morse code letter
+            
+                if (&received_code[i] == ' ') { // Checks for space character to determine end of morse code letter
                     if (display_text[0] != '\0') {
-                        char text[MSG_BUFFER];
+                        char text[MSG_BUFFER];   
                         snprintf(text, sizeof(text), "%c %s", morseToText(display_text), display_text);
                         write_text_xy(20, 20, text); // displays text buffer, text scale changed to '2' inside sdk.c
                     }
