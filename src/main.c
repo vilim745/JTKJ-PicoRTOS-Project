@@ -54,7 +54,7 @@ static void playBuzzer(char symbol);
 static void init_all(void);
 static void addSymbol(char symbol);
 static void sensorMovement(float gx, float gz);
-static void debug_print(const char *msg);
+static void debug_print(char *trail, const char *message);
 
 
 // Morse symbols for letters
@@ -133,11 +133,9 @@ static void addSymbol(char symbol) {
         morse_code[count] = symbol;
         morse_code[count + 1] = '\0';
 
-        char msg[MSG_BUFFER];
-        snprintf(msg, sizeof(msg), "Morse code: %s \n", morse_code);
-        debug_print(msg);
+        debug_print("Morse code: ", morse_code);
     } else {
-        debug_print("Morse code buffer full \n");
+        debug_print(NULL,"Morse code buffer full\n");
     }
 }
 
@@ -147,7 +145,7 @@ static void sensorMovement(float gx, float gz) {
 
         if (strlen(morse_code) > 0) {  
 
-            debug_print("SPACE \n");
+            debug_print(NULL, "SPACE");
             addSymbol(' ');    // Add space to morse
             vTaskDelay(pdMS_TO_TICKS(300));
         }
@@ -155,12 +153,12 @@ static void sensorMovement(float gx, float gz) {
 
         if (gz > 0) { // left
 
-            debug_print("DOT (LEFT)\n");
+            debug_print(NULL, "DOT (LEFT)");
             addSymbol('.');
             vTaskDelay(pdMS_TO_TICKS(300));
         } else { // right
 
-            debug_print("DASH (RIGHT)\n");
+            debug_print(NULL, "DASH (RIGHT)");
             addSymbol('-');
             vTaskDelay(pdMS_TO_TICKS(300));
         }
@@ -168,10 +166,13 @@ static void sensorMovement(float gx, float gz) {
 }
 
 // Function to print debug messages to USB serial if connected
-static void debug_print(const char *msg) {
+static void debug_print(char *trail, const char *message) {
     if (!usb_serial_connected()) {
         return;
     }
+
+    char msg[MSG_BUFFER];
+    snprintf(msg, sizeof(msg), "%s%s\n", trail, message);
 
     usb_serial_print(msg);
     usb_serial_flush();
@@ -184,7 +185,7 @@ void clkFxn(void *pvParameters) {
 
     while (1) {
         if (programState == IDLE && gpio_get(SW2_PIN) == 1) {
-            debug_print("Button pressed, starting to read sensor data\n");
+            debug_print(NULL, "Button pressed, starting to read sensor data\n");
             toggle_led();
             vTaskDelay(pdMS_TO_TICKS(300));
             programState = READ_SENSOR;
@@ -210,12 +211,12 @@ void sensorTask(void *pvParameters)
 
     // Setting up the sensor. 
     if (init_ICM42670() == 0) {
-        debug_print("ICM-42670P initialized successfully!\n");
+        debug_print(NULL, "ICM-42670P initialized successfully!\n");
         if (ICM42670_start_with_default_values() != 0) {
-            debug_print("ICM-42670P could not initialize accelerometer or gyroscope\n");
+            debug_print(NULL, "ICM-42670P could not initialize accelerometer or gyroscope\n");
         }
     } else {
-        debug_print("Failed to initialize ICM-42670P.\n");
+        debug_print(NULL, "Failed to initialize ICM-42670P.\n");
     }
 
     // Start collection data here. Infinite loop. 
@@ -228,7 +229,7 @@ void sensorTask(void *pvParameters)
 
                 if (gpio_get(SW2_PIN) == 1) {
                     // If button pressed, toggle led, end the message and change program state
-                    debug_print("Button pressed, stopping sensor data collection\n");
+                    debug_print(NULL, "\nButton pressed, stopping sensor data collection\n");
                     toggle_led();
                     strcat(morse_code, "  \n"); // end of message
                     programState = MSG_READY;
@@ -237,7 +238,7 @@ void sensorTask(void *pvParameters)
                     sensorMovement(gx, gz);
                 }
             } else {
-                debug_print("Failed to read imu data\n");
+                debug_print(NULL, "Failed to read imu data\n");
             }
         }
         vTaskDelay(pdMS_TO_TICKS(50));
@@ -257,9 +258,8 @@ void transmitTask(void *pvParameters) {
     {
         if (programState == MSG_READY) {
             if (tud_cdc_n_connected(CDC_ITF_DATA)){
-                char msg[MSG_BUFFER];
-                snprintf(msg, sizeof(msg), "Transmitting morse code: %s", morse_code);
-                debug_print(msg);
+
+                debug_print("Transmitted morse code: ", morse_code);
 
                 tud_cdc_n_write(CDC_ITF_DATA, morse_code, strlen(morse_code));
                 tud_cdc_n_write_flush(CDC_ITF_DATA);
@@ -310,9 +310,7 @@ void displayTask(void *pvParameters) {
         if (programState == UPDATE_OLED) {
             char display_text[MSG_BUFFER] = "";
 
-            char msg[MSG_BUFFER];
-            snprintf(msg, sizeof(msg), "Received morse code: %s\n", received_code);
-            debug_print(msg);
+            debug_print("Received morse code: ", received_code);
         
             for (int i = 0; received_code[i] != '\0'; i++) {
 
