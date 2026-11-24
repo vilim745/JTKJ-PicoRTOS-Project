@@ -17,6 +17,7 @@ Authors: Vili Mannermaa 2507250, Jasu Känsälä 2410201, Elias Mela 2507227
 #include "tkjhat/sdk.h"
 #include "usbSerialDebug/helper.h"
 
+/*-------- CONSTANTS---------*/
 
 // Default stack size for the tasks.
 #define DEFAULT_STACK_SIZE 2048 
@@ -46,7 +47,7 @@ enum state
 volatile enum state programState = IDLE;
 
 // Tells clockTask new message has been received
-bool INCOMING_MSG = 0; 
+bool INCOMING_MSG = false; 
 
 // Array for morse code from sensor
 char morse_code[MSG_BUFFER] = "";
@@ -84,7 +85,8 @@ const char *morseSymbols[ALPHABET] = {
     "--.."      // Z
 };
 
-/*-------- FUNTION PROTOTYPES ---------*/
+
+/*-------- FUNCTION PROTOTYPES ---------*/
 
 static char morseToText(const char *symbol);
 static void playBuzzer(char symbol);
@@ -126,6 +128,7 @@ static void playBuzzer(char symbol) {
     }
 }
 
+// Initializes all the inits
 static void init_all(void) {
     init_hat_sdk();
     init_sw2();
@@ -136,6 +139,7 @@ static void init_all(void) {
     usb_serial_init();
 }
 
+// Tries to add a symbol to morse_code, if there is space. 
 static void addSymbol(char symbol) { 
     uint8_t count = strlen(morse_code);
 
@@ -149,6 +153,7 @@ static void addSymbol(char symbol) {
     }
 }
 
+// Checks the sensor movement and adds the corresponding symbol using addSymbol.
 static void sensorMovement(float gx, float gz) {
 
     if (gx > GX_THRESHOLD) { // Up movement
@@ -226,6 +231,7 @@ void clockTask(void *pvParameters) {
                 programState = READ_SENSOR;
             } else if (INCOMING_MSG) {
                 programState = UPDATE_OLED;
+                INCOMING_MSG = false;
             }
         }
         vTaskDelay(pdMS_TO_TICKS(50));
