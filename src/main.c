@@ -51,7 +51,7 @@ volatile enum state programState = IDLE;
 bool INCOMING_MSG = false; 
 
 // Array for morse code from sensor
-char morse_code[MSG_BUFFER] = "";
+char transmit_code[MSG_BUFFER] = "";
 
 // Array for morse code received from computer
 char received_code[MSG_BUFFER] = "";
@@ -140,15 +140,15 @@ static void init_all(void) {
     usb_serial_init();
 }
 
-// Tries to add a symbol to morse_code, if there is space. 
+// Tries to add a symbol to transmit, if there is space. 
 static void addSymbol(char symbol) { 
-    uint8_t count = strlen(morse_code);
+    uint8_t count = strlen(transmit_code);
 
     if (count < MSG_BUFFER - 4) {
-        morse_code[count] = symbol;
-        morse_code[count + 1] = '\0';
+        transmit_code[count] = symbol;
+        transmit_code[count + 1] = '\0';
 
-        debug_print("Morse code: ", morse_code);
+        debug_print("Morse code: ", transmit_code);
     } else {
         debug_print(NULL,"Morse code buffer full\n");
     }
@@ -159,7 +159,7 @@ static void sensorMovement(float gx, float gz) {
 
     if (gx > GX_THRESHOLD) { // Up movement
 
-        if (strlen(morse_code) > 0) {  
+        if (strlen(transmit_code) > 0) {  
 
             debug_print(NULL, "SPACE");
             addSymbol(SPACE);    // Add space to morse
@@ -271,7 +271,7 @@ static void sensorTask(void *pvParameters) {
                     // If button pressed, toggle led, end the message and change program state
                     debug_print(NULL, "\nButton pressed, stopping sensor data collection\n");
                     toggle_led();
-                    strcat(morse_code, "  \n"); // end of message
+                    strcat(transmit_code, "  \n"); // end of message
                     programState = MSG_READY;
 
                 } else {
@@ -296,13 +296,13 @@ void transmitTask(void *pvParameters) {
     while (1) {
         if (programState == MSG_READY) {
             if (tud_cdc_n_connected(CDC_ITF_DATA)){
-                debug_print("Transmitted morse code: ", morse_code);
+                debug_print("Transmitted morse code: ", transmit_code);
 
-                tud_cdc_n_write(CDC_ITF_DATA, morse_code, strlen(morse_code));
+                tud_cdc_n_write(CDC_ITF_DATA, transmit_code, strlen(transmit_code));
                 tud_cdc_n_write_flush(CDC_ITF_DATA);
                 playBuzzer(TRANSMIT_SYMBOL); // Transmit sound feedback
             }
-            morse_code[0] = '\0';
+            transmit_code[0] = '\0';
             programState = IDLE;      
         } 
     vTaskDelay(pdMS_TO_TICKS(500));
