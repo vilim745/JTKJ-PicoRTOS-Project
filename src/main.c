@@ -18,7 +18,7 @@ Authors: Vili Mannermaa 2507250, Jasu Känsälä 2410201, Elias Mela 2507227
 #include "usbSerialDebug/helper.h"
 
 
-// Default stack size for the tasks. It can be reduced to 1024 if task is not using lot of memory.
+// Default stack size for the tasks.
 #define DEFAULT_STACK_SIZE 2048 
 
 #define MSG_BUFFER 128
@@ -27,6 +27,11 @@ Authors: Vili Mannermaa 2507250, Jasu Känsälä 2410201, Elias Mela 2507227
 #define CDC_ITF_DEBUG 0 // Not used here directly, only for clarification
 #define CDC_ITF_DATA 1 // Data port
 
+#define TRANSMIT_SOUND 'T'
+
+
+/*-------- GLOBAL VARIABLES ---------*/
+
 enum state
 {
     IDLE = 1,
@@ -34,11 +39,10 @@ enum state
     MSG_READY,
     UPDATE_OLED
 };
-
-
 volatile enum state programState = IDLE;
 
-bool INCOMING_MSG = 0;
+// Tells clockTask new message has been received
+bool INCOMING_MSG = 0; 
 
 // Array for morse code from sensor
 char morse_code[MSG_BUFFER] = "";
@@ -86,9 +90,21 @@ const char *morseSymbols[ALPHABET] = {
     "--.."      // Z
 };
 
+/*-------- FUNTION PROTOTYPES ---------*/
+
+char morseToText(const char *symbol);
+static void playBuzzer(char symbol);
+static void init_all(void);
+static void addSymbol(char symbol);
+static void sensorMovement(float gx, float gz);
+static void debug_print(const char *msg);
+
+
+/* ---------- FUNCTIONS --------------*/
+
 // Turns morse symbols to letters
 char morseToText(const char *symbol) {
-
+    
     for (int i=0; i<ALPHABET; i++) {
         if (strcmp(symbol, morseSymbols[i]) == 0) {
             return (char) (i + 'A'); // ASCII code for character (A = 65 ... Z = 90)
@@ -97,6 +113,7 @@ char morseToText(const char *symbol) {
     return '?'; // Symbol not recognized
 }
 
+// Plays buzzer sounds
 static void playBuzzer(char symbol) {
     if (symbol == '.') {
         // Play the dot tone
@@ -107,13 +124,14 @@ static void playBuzzer(char symbol) {
         // Play the dash tone
         buzzer_play_tone(440, 300);
         vTaskDelay(pdMS_TO_TICKS(150));
-
+        
     } else if (symbol == 'T') {
         // Play the tone for sending a message
         buzzer_play_tone(460, 150);
         buzzer_play_tone(950, 150);
     }
 }
+
 
 static void init_all(void) {
     init_hat_sdk();
@@ -179,9 +197,31 @@ static void debug_print(char *trail, const char *message) {
     usb_serial_flush();
 }
 
-// Clock function to check button press and change program state
-void clkFxn(void *pvParameters) {
-    
+// Called automatically when message is received
+void tud_cdc_rx_cb(uint8_t itf) {
+
+    uint8_t buf[CFG_TUD_CDC_RX_BUFSIZE + 1];
+    static size_t index = 0;
+
+    uint32_t count = tud_cdc_n_read(itf, buf, sizeof(buf));
+
+    if (itf == CDC_ITF_DATA) {
+        for (int i = 0; i < count; i++) {
+            if (buf[i] == '\n') { // checks for newline character to determine end of message
+                received_code[index] = '\0';
+                index = 0;
+                INCOMING_MSG = 1; // Tell clock task new message is received
+            } else if (index < MSG_BUFFER - 1) {
+                received_code[index++] = (char)buf[i]; // Writes into received_code array
+            }
+        }
+    }
+}
+
+/* ---------- TASKS --------------*/
+
+// Task runs when in IDLE state. Checks for button press and incoming message
+void clockTask(void *pvParameters) {
     (void)pvParameters;
 
     while (1) {
@@ -200,13 +240,11 @@ void clkFxn(void *pvParameters) {
 }
 
 
-// Collects data from movement-sensor and recognizes movement commands
-void sensorTask(void *pvParameters)
-{
+// Collects data from movement-sensor and interprets commands
+void sensorTask(void *pvParameters) {
     (void)pvParameters;
 
     float ax, ay, az, gx, gy, gz, t;
-    
 
     vTaskDelay(pdMS_TO_TICKS(100));
     for (int i = 0; i < 30 && !usb_serial_connected(); i++) {
@@ -278,29 +316,6 @@ void transmitTask(void *pvParameters) {
     }
 }
 
-
-// Receive data using USB, invoked on its own
-void tud_cdc_rx_cb(uint8_t itf) {
-
-    uint8_t buf[CFG_TUD_CDC_RX_BUFSIZE + 1];
-    static size_t index = 0;
-
-    uint32_t count = tud_cdc_n_read(itf, buf, sizeof(buf));
-
-    if (itf == CDC_ITF_DATA) {
-        for (int i = 0; i < count; i++) {
-            if (buf[i] == '\n') { // checks for newline character to determine end of message
-                received_code[index] = '\0';
-                index = 0;
-
-                INCOMING_MSG = 1;
-            } else if (index < MSG_BUFFER - 1) {
-                received_code[index++] = (char)buf[i]; // Writes into received_code array
-            }
-        }
-    }
-}
-
 // Displays the received message on the screen
 void displayTask(void *pvParameters) {  
 
@@ -358,12 +373,12 @@ int main(void) {
     TaskHandle_t hSensorTask = NULL;
     TaskHandle_t hTransmitTask = NULL;
     TaskHandle_t hDisplayTask = NULL;
-    TaskHandle_t hClkFxn = NULL;
+    TaskHandle_t hclockTask = NULL;
     TaskHandle_t hUsb = NULL;
 
 
     xTaskCreate(usbTask, "usb", DEFAULT_STACK_SIZE, NULL, 3, &hUsb);
-    xTaskCreate(clkFxn, "clkFxn", DEFAULT_STACK_SIZE, NULL, 2, &hClkFxn);
+    xTaskCreate(clockTask, "clockTask", DEFAULT_STACK_SIZE, NULL, 2, &hclockTask);
     xTaskCreate(sensorTask, "Sensor", DEFAULT_STACK_SIZE, NULL, 2, &hSensorTask);
     xTaskCreate(transmitTask, "Transmit", DEFAULT_STACK_SIZE, NULL, 2, &hTransmitTask);
     xTaskCreate(displayTask, "Display", DEFAULT_STACK_SIZE, NULL, 2, &hDisplayTask);
