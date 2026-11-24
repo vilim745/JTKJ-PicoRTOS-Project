@@ -27,6 +27,7 @@ Authors: Vili Mannermaa 2507250, Jasu Känsälä 2410201, Elias Mela 2507227
 #define CDC_ITF_DEBUG 0 // Not used here directly, only for clarification
 #define CDC_ITF_DATA 1 // Data port
 
+#define TRANSMIT_SOUND 'T'
 
 
 enum state
@@ -47,6 +48,16 @@ char morse_code[MSG_BUFFER] = "";
 
 // Array for morse code received from computer
 char received_code[MSG_BUFFER] = "";
+
+
+
+char morseToText(const char *symbol);
+static void playBuzzer(char symbol);
+static void init_all(void);
+static void addSymbol(char symbol);
+static void sensorMovement(float gx, float gz);
+static void debug_print(const char *msg);
+
 
 // Morse symbols for letters
 const char *morseSymbols[ALPHABET] = {
@@ -89,18 +100,18 @@ char morseToText(const char *symbol) {
     return '?'; // Symbol not recognized
 }
 
-static void playBuzzer(char Symbol) {
-    if (Symbol == ".") {
+static void playBuzzer(char symbol) {
+    if (symbol == '.') {
         // Play the dot tone
         buzzer_play_tone(440, 100);
         vTaskDelay(pdMS_TO_TICKS(150));
 
-    } else if (Symbol == "-") {
+    } else if (symbol == '-') {
         // Play the dash tone
         buzzer_play_tone(440, 300);
         vTaskDelay(pdMS_TO_TICKS(150));
 
-    } else {
+    } else if (symbol == 'T') {
         // Play the tone for sending a message
         buzzer_play_tone(460, 150);
         buzzer_play_tone(950, 150);
@@ -113,8 +124,50 @@ static void init_all(void) {
     init_led();
     init_buzzer();
     init_display();
+    tusb_init();
+    usb_serial_init();
 }
 
+static void addSymbol(char symbol) { 
+    int count = strlen(morse_code);
+
+    if (count < MSG_BUFFER - 4) {
+        morse_code[count] = symbol;
+        morse_code[count + 1] = '\0';
+
+        char msg[MSG_BUFFER];
+        snprintf(msg, sizeof(msg), "Morse code: %s \n", morse_code);
+        debug_print(msg);
+    } else {
+        debug_print("Morse code buffer full \n");
+    }
+}
+
+static void sensorMovement(float gx, float gz) {
+
+    if (gx > 180.0f) { // Up movement
+
+        if (strlen(morse_code) > 0) {  
+
+            debug_print("SPACE \n");
+            addSymbol(' ');    // Add space to morse
+            vTaskDelay(pdMS_TO_TICKS(300));
+        }
+    } else if (fabs(gz) > 200.0f) { // sideways movement
+
+        if (gz > 0) { // left
+
+            debug_print("DOT (LEFT)\n");
+            addSymbol('.');
+            vTaskDelay(pdMS_TO_TICKS(300));
+        } else { // right
+
+            debug_print("DASH (RIGHT)\n");
+            addSymbol('-');
+            vTaskDelay(pdMS_TO_TICKS(300));
+        }
+    }
+}
 
 // Function to print debug messages to USB serial if connected
 static void debug_print(const char *msg) {
@@ -125,6 +178,7 @@ static void debug_print(const char *msg) {
     usb_serial_print(msg);
     usb_serial_flush();
 }
+
 // Clock function to check button press and change program state
 void clkFxn(void *pvParameters) {
     
@@ -152,11 +206,10 @@ void sensorTask(void *pvParameters)
     (void)pvParameters;
 
     float ax, ay, az, gx, gy, gz, t;
-
-    init_all();
+    
 
     vTaskDelay(pdMS_TO_TICKS(100));
-    for (int i = 0; i < 30 && !usb_serial_connected(); i++) { // waits for usb connection
+    for (int i = 0; i < 30 && !usb_serial_connected(); i++) {
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 
@@ -180,51 +233,14 @@ void sensorTask(void *pvParameters)
             if (ICM42670_read_sensor_data(&ax, &ay, &az, &gx, &gy, &gz, &t) == 0) {
 
                 if (gpio_get(SW2_PIN) == 1) {
+                    // If button pressed, toggle led, end the message and change program state
                     debug_print("Button pressed, stopping sensor data collection\n");
                     toggle_led();
                     strcat(morse_code, "  \n"); // end of message
                     programState = MSG_READY;
 
-                } else if (gx > 180.0f) {
-
-                    if (strlen(morse_code) > 0) {
-                        if (strlen(morse_code) < MSG_BUFFER - 4) {
-                            debug_print("SPACE\n");
-                            strcat(morse_code, " ");
-                            char msg[MSG_BUFFER];
-                            snprintf(msg, sizeof(msg), "Morse code: %s\n", morse_code);
-                            debug_print(msg);
-                        } else {
-                            debug_print("Morse code buffer full, cannot add space\n");
-                        }
-                    }
-                    vTaskDelay(pdMS_TO_TICKS(300));
-
-                } else if (fabs(gz) > 200.0f) {
-
-                    if (gz > 0) {
-                        debug_print("DOT (LEFT)\n");
-                        if (strlen(morse_code) < MSG_BUFFER - 4) {
-                            strcat(morse_code, ".");
-                            char msg[MSG_BUFFER];
-                            snprintf(msg, sizeof(msg), "Morse code: %s\n", morse_code);
-                            debug_print(msg);
-                        } else {
-                            debug_print("Morse code buffer full, cannot add dot\n");
-                        }
-                        vTaskDelay(pdMS_TO_TICKS(300));
-                    } else {
-                        debug_print("DASH (RIGHT)\n");
-                        if (strlen(morse_code) < MSG_BUFFER - 4) {
-                            strcat(morse_code, "-");
-                            char msg[MSG_BUFFER];
-                            snprintf(msg, sizeof(msg), "Morse code: %s\n", morse_code);
-                            debug_print(msg);
-                        } else {
-                            debug_print("Morse code buffer full, cannot add dash\n");
-                        }
-                        vTaskDelay(pdMS_TO_TICKS(300));
-                    }
+                } else {
+                    sensorMovement(gx, gz);
                 }
             } else {
                 debug_print("Failed to read imu data\n");
@@ -253,7 +269,7 @@ void transmitTask(void *pvParameters) {
 
                 tud_cdc_n_write(CDC_ITF_DATA, morse_code, strlen(morse_code));
                 tud_cdc_n_write_flush(CDC_ITF_DATA);
-                playBuzzer("");
+                playBuzzer(TRANSMIT_SOUND); // Transmit sound feedback
 
             }
             morse_code[0] = '\0';
@@ -295,6 +311,7 @@ void displayTask(void *pvParameters) {
         
         if (programState == UPDATE_OLED) {
             char display_text[MSG_BUFFER] = "";
+
             char msg[MSG_BUFFER];
             snprintf(msg, sizeof(msg), "Received morse code: %s\n", received_code);
             debug_print(msg);
@@ -302,15 +319,13 @@ void displayTask(void *pvParameters) {
             for (int i = 0; received_code[i] != '\0'; i++) {
 
                 // Buzzer feedback for dot and dash
-                playBuzzer(received_code[i])
-
-                }
-
+                playBuzzer(received_code[i]);
+            
                 if (received_code[i] == ' ') { // Checks for space character to determine end of morse code letter
                     if (display_text[0] != '\0') {
-                        char text[MSG_BUFFER];
+                        char text[MSG_BUFFER];   
                         snprintf(text, sizeof(text), "%c %s", morseToText(display_text), display_text);
-                        write_text_xy(20, 20, text); // displays text buffer, text scale changed to '2' inside sdk.c
+                        write_text_xy(20, 20, text);
                     }
                     vTaskDelay(pdMS_TO_TICKS(100));
                     clear_display();
@@ -361,10 +376,8 @@ int main(void) {
         vTaskCoreAffinitySet(hUsb, 1u << 0);
     #endif
 
-    // Init tiny usb
-    tusb_init();
-
-    usb_serial_init();
+    // Init all peripherals and USB serial debug
+    init_all();
     // Start the scheduler (never returns)
     vTaskStartScheduler();
 
