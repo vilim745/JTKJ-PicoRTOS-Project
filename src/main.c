@@ -27,9 +27,6 @@ Authors: Vili Mannermaa 2507250, Jasu Känsälä 2410201, Elias Mela 2507227
 #define CDC_ITF_DEBUG 0 // Not used here directly, only for clarification
 #define CDC_ITF_DATA 1 // Data port
 
-#define TRANSMIT_SOUND 'T'
-
-
 enum state
 {
     IDLE = 1,
@@ -144,24 +141,23 @@ static void sensorMovement(float gx, float gz) {
     if (gx > 180.0f) { // Up movement
 
         if (strlen(morse_code) > 0) {  
-
             debug_print("SPACE \n");
             addSymbol(' ');    // Add space to morse
             vTaskDelay(pdMS_TO_TICKS(300));
         }
+
     } else if (fabs(gz) > 200.0f) { // sideways movement
 
         if (gz > 0) { // left
-
             debug_print("DOT (LEFT)\n");
             addSymbol('.');
-            vTaskDelay(pdMS_TO_TICKS(300));
-        } else { // right
 
+        } else { // right
             debug_print("DASH (RIGHT)\n");
             addSymbol('-');
-            vTaskDelay(pdMS_TO_TICKS(300));
+            
         }
+        vTaskDelay(pdMS_TO_TICKS(300));
     }
 }
 
