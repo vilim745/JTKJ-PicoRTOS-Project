@@ -251,7 +251,6 @@ static void sensorTask(void *pvParameters) {
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 
-
     // Setting up the sensor. 
     if (init_ICM42670() == 0) {
         debug_print(NULL, "ICM-42670P initialized successfully!\n");
@@ -262,12 +261,10 @@ static void sensorTask(void *pvParameters) {
         debug_print(NULL, "Failed to initialize ICM-42670P.\n");
     }
 
-    // Start collection data here. Infinite loop. 
-    while (1)
-    {
+    while (1) {
         if (programState == READ_SENSOR) {
-            // Reads sensor data, detects movement commands and checks if button pressed.
 
+            // Reads sensor data, detects movement commands and checks if button pressed.
             if (ICM42670_read_sensor_data(&ax, &ay, &az, &gx, &gy, &gz, &t) == 0) {
 
                 if (gpio_get(SW2_PIN) == 1) {
@@ -292,22 +289,18 @@ static void sensorTask(void *pvParameters) {
 // Sends morse-code to the computer using USB
 // Stdio usb support needs to be disabled and usb-serial-debug linked and added as subdirectory
 void transmitTask(void *pvParameters) {
-
     (void)pvParameters;
 
     char buf[MSG_BUFFER] = ""; 
 
-    while (1)
-    {
+    while (1) {
         if (programState == MSG_READY) {
             if (tud_cdc_n_connected(CDC_ITF_DATA)){
-
                 debug_print("Transmitted morse code: ", morse_code);
 
                 tud_cdc_n_write(CDC_ITF_DATA, morse_code, strlen(morse_code));
                 tud_cdc_n_write_flush(CDC_ITF_DATA);
                 playBuzzer(TRANSMIT_SYMBOL); // Transmit sound feedback
-
             }
             morse_code[0] = '\0';
             programState = IDLE;      
@@ -322,7 +315,6 @@ void displayTask(void *pvParameters) {
     (void)pvParameters;
 
     while (1) {
-        
         if (programState == UPDATE_OLED) {
             char display_text[MSG_BUFFER] = "";
 
@@ -342,18 +334,15 @@ void displayTask(void *pvParameters) {
                     vTaskDelay(pdMS_TO_TICKS(100));
                     clear_display();
                     display_text[0] = '\0';
-                } else {
-                    if (strlen(display_text) < MSG_BUFFER - 1){
-                        strncat(display_text, &received_code[i], 1); // Adds the morse code character to display_text
-                    }
+                    
+                } else if (strlen(display_text) < MSG_BUFFER - 1){
+                        strncat(display_text, &received_code[i], 1); // Adds the morse code character to display_text 
                 }
             }
-
             clear_display();
             received_code[0] = '\0';
             programState = IDLE;
         }
-
         vTaskDelay(pdMS_TO_TICKS(150));
     }
 }
