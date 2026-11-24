@@ -122,6 +122,8 @@ static void init_all(void) {
     init_led();
     init_buzzer();
     init_display();
+    tusb_init();
+    usb_serial_init();
 }
 
 static void addSymbol(char symbol) { 
@@ -179,8 +181,6 @@ static void debug_print(const char *msg) {
 void clkFxn(void *pvParameters) {
     
     (void)pvParameters;
-
-    init_all();
 
     while (1) {
         if (programState == IDLE && gpio_get(SW2_PIN) == 1) {
@@ -374,10 +374,8 @@ int main(void) {
         vTaskCoreAffinitySet(hUsb, 1u << 0);
     #endif
 
-    // Init tiny usb
-    tusb_init();
-
-    usb_serial_init();
+    // Init all peripherals and USB serial debug
+    init_all();
     // Start the scheduler (never returns)
     vTaskStartScheduler();
 
