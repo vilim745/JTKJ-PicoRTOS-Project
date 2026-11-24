@@ -127,7 +127,7 @@ void sensorTask(void *pvParameters)
     init_display();
 
     vTaskDelay(pdMS_TO_TICKS(100));
-    for (int i = 0; i < 30 && !usb_serial_connected(); i++) {
+    for (int i = 0; i < 30 && !usb_serial_connected(); i++) { // waits for usb connection
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 
@@ -290,7 +290,7 @@ void displayTask(void *pvParameters) {
                     if (display_text[0] != '\0') {
                         char text[MSG_BUFFER];
                         snprintf(text, sizeof(text), "%c %s", morseToText(display_text), display_text);
-                        write_text_xy(20, 20, text);
+                        write_text_xy(20, 20, text); // displays text buffer, text scale changed to '2' inside sdk.c
                     }
                     vTaskDelay(pdMS_TO_TICKS(100));
                     clear_display();
