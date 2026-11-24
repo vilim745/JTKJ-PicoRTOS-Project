@@ -140,7 +140,7 @@ static void init_all(void) {
     usb_serial_init();
 }
 
-// Tries to add a symbol to transmit, if there is space. 
+// Tries to add a symbol to transmit_code, if there is space. 
 static void addSymbol(char symbol) { 
     uint8_t count = strlen(transmit_code);
 
