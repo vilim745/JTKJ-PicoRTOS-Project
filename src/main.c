@@ -19,8 +19,7 @@ Authors: Vili Mannermaa 2507250, Jasu Känsälä 2410201, Elias Mela 2507227
 
 /*-------- CONSTANTS---------*/
 
-// Default stack size for the tasks.
-#define DEFAULT_STACK_SIZE 2048 
+#define DEFAULT_STACK_SIZE 2048 // Default stack size for the tasks.
 
 #define MSG_BUFFER 128
 #define ALPHABET 26
@@ -50,10 +49,10 @@ volatile enum state programState = IDLE;
 // Tells clockTask new message has been received
 bool INCOMING_MSG = false; 
 
-// Array for morse code from sensor
+// Morse code from sensor to be transmitted
 char transmit_code[MSG_BUFFER] = "";
 
-// Array for morse code received from computer
+// Morse code received from computer
 char received_code[MSG_BUFFER] = "";
 
 // Morse symbols for letters
@@ -99,7 +98,7 @@ static void debug_print(char *trail, const char *message);
 
 /* ---------- FUNCTIONS --------------*/
 
-// Turns morse symbols to letters
+// Turns a morse symbol to a letter
 static char morseToText(const char *symbol) {
     
     for (uint8_t i=0; i<ALPHABET; i++) {
@@ -169,16 +168,14 @@ static void sensorMovement(float gx, float gz) {
     } else if (fabs(gz) > GZ_THRESHOLD) { // sideways movement
 
         if (gz > 0) { // left
-
             debug_print(NULL, "DOT (LEFT)");
             addSymbol(DOT);
 
         } else { // right
-
             debug_print(NULL, "DASH (RIGHT)");
             addSymbol(DASH);
-            
         }
+
         vTaskDelay(pdMS_TO_TICKS(300));
     }
 }
@@ -231,8 +228,8 @@ void clockTask(void *pvParameters) {
                 vTaskDelay(pdMS_TO_TICKS(300));
                 programState = READ_SENSOR;
             } else if (INCOMING_MSG) {
-                programState = UPDATE_OLED;
                 INCOMING_MSG = false;
+                programState = UPDATE_OLED;
             }
         }
         vTaskDelay(pdMS_TO_TICKS(50));
@@ -311,7 +308,6 @@ void transmitTask(void *pvParameters) {
 
 // Displays the received message on the screen
 void displayTask(void *pvParameters) {  
-
     (void)pvParameters;
 
     while (1) {
@@ -330,11 +326,10 @@ void displayTask(void *pvParameters) {
                         char text[MSG_BUFFER];   
                         snprintf(text, sizeof(text), "%c %s", morseToText(display_text), display_text);
                         write_text_xy(20, 20, text);
+                        vTaskDelay(pdMS_TO_TICKS(100));
+                        clear_display();
+                        display_text[0] = '\0';
                     }
-                    vTaskDelay(pdMS_TO_TICKS(100));
-                    clear_display();
-                    display_text[0] = '\0';
-                    
                 } else if (strlen(display_text) < MSG_BUFFER - 1){
                         strncat(display_text, &received_code[i], 1); // Adds the morse code character to display_text 
                 }
