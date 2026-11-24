@@ -40,6 +40,8 @@ enum state
 
 volatile enum state programState = IDLE;
 
+bool INCOMING_MSG = 0;
+
 // Array for morse code from sensor
 char morse_code[MSG_BUFFER] = "";
 
@@ -129,11 +131,15 @@ void clkFxn(void *pvParameters) {
     (void)pvParameters;
 
     while (1) {
-        if (programState == IDLE && gpio_get(SW2_PIN) == 1) {
-            debug_print("Button pressed, starting to read sensor data\n");
-            toggle_led();
-            vTaskDelay(pdMS_TO_TICKS(300));
-            programState = READ_SENSOR;
+        if (programState == IDLE) {
+            if (gpio_get(SW2_PIN) == 1) {
+                debug_print("Button pressed, starting to read sensor data\n");
+                toggle_led();
+                vTaskDelay(pdMS_TO_TICKS(300));
+                programState = READ_SENSOR;
+            } else if (INCOMING_MSG) {
+                programState = UPDATE_OLED;
+            }
         }
         vTaskDelay(pdMS_TO_TICKS(50));
     }
@@ -268,15 +274,11 @@ void tud_cdc_rx_cb(uint8_t itf) {
 
     if (itf == CDC_ITF_DATA) {
         for (int i = 0; i < count; i++) {
-            if (programState != IDLE) {
-                continue;
-            }
-
             if (buf[i] == '\n') { // checks for newline character to determine end of message
                 received_code[index] = '\0';
                 index = 0;
-                programState = UPDATE_OLED;
 
+                INCOMING_MSG = 1;
             } else if (index < MSG_BUFFER - 1) {
                 received_code[index++] = (char)buf[i]; // Writes into received_code array
             }
