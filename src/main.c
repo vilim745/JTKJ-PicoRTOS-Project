@@ -1,5 +1,5 @@
 /*
-Authors: Vili Mannermaa 2507250, ...
+Authors: Vili Mannermaa 2507250, Jasu Känsälä 2410201
 */
 
 #include <stdio.h>
