@@ -114,6 +114,40 @@ static void init_all(void) {
     init_display();
 }
 
+static void addSymbol(char *symbol) { 
+    int count = strlen(morse_code)
+
+    if (count < MSG_BUFFER - 4) {
+        morse_code[count] = symbol;
+        morse_code[count + 1] = "\0";
+
+        char msg[MSG_BUFFER];
+        snprintf(msg, sizeof(msg), "Morse code: %s \n", morse_code);
+        debug_print(msg);
+    } else {
+        debug_print("Morse code buffer full \n")
+    }
+}
+
+static void sensorMovement(float gx, float gz) {
+    if (gx > 180.0f) {
+        // Up movement
+        if (strlen(morse_code) > 0) {
+            debug_print("SPACE \n")
+            addSymbol(" ");    // Add space to morse
+        }
+    } else if (fabs(gz) > 200.0f) {
+        if (gz > 0) {
+            debug_print("DOT (LEFT)\n");
+            addSymbol('.');
+        } else {
+            debug_print("DASH (RIGHT)\n");
+            addSymbol('-');
+        }
+        vTaskDelay(pdMS_TO_TICKS(300))
+    }
+}
+
 
 // Function to print debug messages to USB serial if connected
 static void debug_print(const char *msg) {
@@ -152,7 +186,7 @@ void sensorTask(void *pvParameters)
     
 
     vTaskDelay(pdMS_TO_TICKS(100));
-    for (int i = 0; i < 30 && !usb_serial_connected(); i++) { // waits for usb connection
+    for (int i = 0; i < 30 && !usb_serial_connected(); i++) {
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 
@@ -176,51 +210,14 @@ void sensorTask(void *pvParameters)
             if (ICM42670_read_sensor_data(&ax, &ay, &az, &gx, &gy, &gz, &t) == 0) {
 
                 if (gpio_get(SW2_PIN) == 1) {
+                    // If button pressed, toggle led, end the message and change program state
                     debug_print("Button pressed, stopping sensor data collection\n");
                     toggle_led();
                     strcat(morse_code, "  \n"); // end of message
                     programState = MSG_READY;
 
-                } else if (gx > 180.0f) {
-
-                    if (strlen(morse_code) > 0) {
-                        if (strlen(morse_code) < MSG_BUFFER - 4) {
-                            debug_print("SPACE\n");
-                            strcat(morse_code, " ");
-                            char msg[MSG_BUFFER];
-                            snprintf(msg, sizeof(msg), "Morse code: %s\n", morse_code);
-                            debug_print(msg);
-                        } else {
-                            debug_print("Morse code buffer full, cannot add space\n");
-                        }
-                    }
-                    vTaskDelay(pdMS_TO_TICKS(300));
-
-                } else if (fabs(gz) > 200.0f) {
-
-                    if (gz > 0) {
-                        debug_print("DOT (LEFT)\n");
-                        if (strlen(morse_code) < MSG_BUFFER - 4) {
-                            strcat(morse_code, ".");
-                            char msg[MSG_BUFFER];
-                            snprintf(msg, sizeof(msg), "Morse code: %s\n", morse_code);
-                            debug_print(msg);
-                        } else {
-                            debug_print("Morse code buffer full, cannot add dot\n");
-                        }
-                        vTaskDelay(pdMS_TO_TICKS(300));
-                    } else {
-                        debug_print("DASH (RIGHT)\n");
-                        if (strlen(morse_code) < MSG_BUFFER - 4) {
-                            strcat(morse_code, "-");
-                            char msg[MSG_BUFFER];
-                            snprintf(msg, sizeof(msg), "Morse code: %s\n", morse_code);
-                            debug_print(msg);
-                        } else {
-                            debug_print("Morse code buffer full, cannot add dash\n");
-                        }
-                        vTaskDelay(pdMS_TO_TICKS(300));
-                    }
+                } else {
+                    sensorMovement(gx, gz);
                 }
             } else {
                 debug_print("Failed to read imu data\n");
@@ -308,7 +305,7 @@ void displayTask(void *pvParameters) {
                     if (display_text[0] != '\0') {
                         char text[MSG_BUFFER];   
                         snprintf(text, sizeof(text), "%c %s", morseToText(display_text), display_text);
-                        write_text_xy(20, 20, text); // displays text buffer, text scale changed to '2' inside sdk.c
+                        write_text_xy(20, 20, text);
                     }
                     vTaskDelay(pdMS_TO_TICKS(100));
                     clear_display();
