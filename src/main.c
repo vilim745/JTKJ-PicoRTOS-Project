@@ -47,6 +47,16 @@ char morse_code[MSG_BUFFER] = "";
 // Array for morse code received from computer
 char received_code[MSG_BUFFER] = "";
 
+
+
+char morseToText(const char *symbol);
+static void playBuzzer(char symbol);
+static void init_all(void);
+static void addSymbol(char symbol);
+static void sensorMovement(float gx, float gz);
+static void debug_print(const char *msg);
+
+
 // Morse symbols for letters
 const char *morseSymbols[ALPHABET] = {
     ".-",       // A
@@ -88,18 +98,18 @@ char morseToText(const char *symbol) {
     return '?'; // Symbol not recognized
 }
 
-static void playBuzzer(char *symbol) {
-    if (symbol == ".") {
+static void playBuzzer(char symbol) {
+    if (symbol == '.') {
         // Play the dot tone
         buzzer_play_tone(440, 100);
         vTaskDelay(pdMS_TO_TICKS(150));
 
-    } else if (symbol == "-") {
+    } else if (symbol == '-') {
         // Play the dash tone
         buzzer_play_tone(440, 300);
         vTaskDelay(pdMS_TO_TICKS(150));
 
-    } else if (symbol == "T") {
+    } else if (symbol == 'T') {
         // Play the tone for sending a message
         buzzer_play_tone(460, 150);
         buzzer_play_tone(950, 150);
@@ -114,40 +124,46 @@ static void init_all(void) {
     init_display();
 }
 
-static void addSymbol(char *symbol) { 
-    int count = strlen(morse_code)
+static void addSymbol(char symbol) { 
+    int count = strlen(morse_code);
 
     if (count < MSG_BUFFER - 4) {
         morse_code[count] = symbol;
-        morse_code[count + 1] = "\0";
+        morse_code[count + 1] = '\0';
 
         char msg[MSG_BUFFER];
         snprintf(msg, sizeof(msg), "Morse code: %s \n", morse_code);
         debug_print(msg);
     } else {
-        debug_print("Morse code buffer full \n")
+        debug_print("Morse code buffer full \n");
     }
 }
 
 static void sensorMovement(float gx, float gz) {
-    if (gx > 180.0f) {
-        // Up movement
-        if (strlen(morse_code) > 0) {
-            debug_print("SPACE \n")
-            addSymbol(" ");    // Add space to morse
+
+    if (gx > 180.0f) { // Up movement
+
+        if (strlen(morse_code) > 0) {  
+
+            debug_print("SPACE \n");
+            addSymbol(' ');    // Add space to morse
+            vTaskDelay(pdMS_TO_TICKS(300));
         }
-    } else if (fabs(gz) > 200.0f) {
-        if (gz > 0) {
+    } else if (fabs(gz) > 200.0f) { // sideways movement
+
+        if (gz > 0) { // left
+
             debug_print("DOT (LEFT)\n");
             addSymbol('.');
-        } else {
+            vTaskDelay(pdMS_TO_TICKS(300));
+        } else { // right
+
             debug_print("DASH (RIGHT)\n");
             addSymbol('-');
+            vTaskDelay(pdMS_TO_TICKS(300));
         }
-        vTaskDelay(pdMS_TO_TICKS(300))
     }
 }
-
 
 // Function to print debug messages to USB serial if connected
 static void debug_print(const char *msg) {
@@ -158,6 +174,7 @@ static void debug_print(const char *msg) {
     usb_serial_print(msg);
     usb_serial_flush();
 }
+
 // Clock function to check button press and change program state
 void clkFxn(void *pvParameters) {
     
@@ -292,6 +309,7 @@ void displayTask(void *pvParameters) {
         
         if (programState == UPDATE_OLED) {
             char display_text[MSG_BUFFER] = "";
+
             char msg[MSG_BUFFER];
             snprintf(msg, sizeof(msg), "Received morse code: %s\n", received_code);
             debug_print(msg);
@@ -299,9 +317,9 @@ void displayTask(void *pvParameters) {
             for (int i = 0; received_code[i] != '\0'; i++) {
 
                 // Buzzer feedback for dot and dash
-                playBuzzer(&received_code[i]);
+                playBuzzer(received_code[i]);
             
-                if (&received_code[i] == ' ') { // Checks for space character to determine end of morse code letter
+                if (received_code[i] == ' ') { // Checks for space character to determine end of morse code letter
                     if (display_text[0] != '\0') {
                         char text[MSG_BUFFER];   
                         snprintf(text, sizeof(text), "%c %s", morseToText(display_text), display_text);
