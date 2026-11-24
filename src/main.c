@@ -87,7 +87,7 @@ char morseToText(const char *symbol) {
     return '?'; // Symbol not recognized
 }
 
-static void playBuzzer(char Symbol) {
+static void playBuzzer(char *Symbol) {
     if (Symbol == ".") {
         // Play the dot tone
         buzzer_play_tone(440, 100);
@@ -98,7 +98,7 @@ static void playBuzzer(char Symbol) {
         buzzer_play_tone(440, 300);
         vTaskDelay(pdMS_TO_TICKS(150));
 
-    } else {
+    } else if (Symbol == "T") {
         // Play the tone for sending a message
         buzzer_play_tone(460, 150);
         buzzer_play_tone(950, 150);
@@ -247,7 +247,7 @@ void transmitTask(void *pvParameters) {
 
                 tud_cdc_n_write(CDC_ITF_DATA, morse_code, strlen(morse_code));
                 tud_cdc_n_write_flush(CDC_ITF_DATA);
-                playBuzzer("");
+                playBuzzer("T"); // Transmit sound feedback
 
             }
             morse_code[0] = '\0';
@@ -300,9 +300,8 @@ void displayTask(void *pvParameters) {
             for (int i = 0; received_code[i] != '\0'; i++) {
 
                 // Buzzer feedback for dot and dash
-                playBuzzer(received_code[i])
-
-                }
+                playBuzzer(&received_code[i]);
+                
 
                 if (received_code[i] == ' ') { // Checks for space character to determine end of morse code letter
                     if (display_text[0] != '\0') {
