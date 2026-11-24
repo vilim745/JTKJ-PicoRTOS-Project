@@ -76,10 +76,6 @@ const char *morseSymbols[ALPHABET] = {
     "--.."      // Z
 };
 
- // Prototypes
-static void debug_print(const char *msg);
-char morseToText(const char *symbol);
-
 // Turns morse symbols to letters
 char morseToText(const char *symbol) {
 
@@ -90,6 +86,33 @@ char morseToText(const char *symbol) {
     }
     return '?'; // Symbol not recognized
 }
+
+static void playBuzzer(char Symbol) {
+    if (Symbol == ".") {
+        // Play the dot tone
+        buzzer_play_tone(440, 100);
+        vTaskDelay(pdMS_TO_TICKS(150));
+
+    } else if (Symbol == "-") {
+        // Play the dash tone
+        buzzer_play_tone(440, 300);
+        vTaskDelay(pdMS_TO_TICKS(150));
+
+    } else {
+        // Play the tone for sending a message
+        buzzer_play_tone(460, 150);
+        buzzer_play_tone(950, 150);
+    }
+}
+
+static void init_all(void) {
+    init_hat_sdk();
+    init_sw2();
+    init_led();
+    init_buzzer();
+    init_display();
+}
+
 
 // Function to print debug messages to USB serial if connected
 static void debug_print(const char *msg) {
@@ -124,11 +147,7 @@ void sensorTask(void *pvParameters)
 
     float ax, ay, az, gx, gy, gz, t;
 
-    init_hat_sdk();
-    init_sw2();
-    init_led();
-    init_buzzer();
-    init_display();
+    init_all();
 
     vTaskDelay(pdMS_TO_TICKS(100));
     for (int i = 0; i < 30 && !usb_serial_connected(); i++) {
@@ -228,8 +247,8 @@ void transmitTask(void *pvParameters) {
 
                 tud_cdc_n_write(CDC_ITF_DATA, morse_code, strlen(morse_code));
                 tud_cdc_n_write_flush(CDC_ITF_DATA);
-                buzzer_play_tone(466, 150);
-                buzzer_play_tone(932, 150);
+                playBuzzer("");
+
             }
             morse_code[0] = '\0';
             programState = IDLE;      
@@ -281,14 +300,9 @@ void displayTask(void *pvParameters) {
             for (int i = 0; received_code[i] != '\0'; i++) {
 
                 // Buzzer feedback for dot and dash
-                if (received_code[i] == '.') {
-                    buzzer_play_tone(440, 100);
-                    vTaskDelay(pdMS_TO_TICKS(150));
-                } else if (received_code[i] == '-') {
-                    buzzer_play_tone(440, 300);
-                    vTaskDelay(pdMS_TO_TICKS(150));
-                }
+                playBuzzer(received_code[i])
 
+                }
 
                 if (received_code[i] == ' ') { // Checks for space character to determine end of morse code letter
                     if (display_text[0] != '\0') {
