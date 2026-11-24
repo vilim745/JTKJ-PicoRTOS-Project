@@ -31,8 +31,9 @@ Authors: Vili Mannermaa 2507250, Jasu Känsälä 2410201, Elias Mela 2507227
 #define DASH '-'
 #define DOT '.'
 #define SPACE ' '
-#define GX_THRESHOLD 180.0f
-#define GZ_THRESHOLD 200.0f
+#define GX_THRESHOLD 180.0f // Threshold for detecting up movement (X-axis)
+#define GZ_THRESHOLD 200.0f // Threshold for detecting sideways movement (Z-axis)
+#define TRANSMIT_SYMBOL 'T' // used for buzzer feedback when sending a message
 
 /*-------- GLOBAL VARIABLES ---------*/
 
@@ -121,7 +122,7 @@ static void playBuzzer(char symbol) {
         buzzer_play_tone(440, 300);
         vTaskDelay(pdMS_TO_TICKS(150));
         
-    } else {
+    } else if (symbol == TRANSMIT_SYMBOL) {
         // Play the tone for sending a message
         buzzer_play_tone(460, 150);
         buzzer_play_tone(950, 150);
@@ -305,7 +306,7 @@ void transmitTask(void *pvParameters) {
 
                 tud_cdc_n_write(CDC_ITF_DATA, morse_code, strlen(morse_code));
                 tud_cdc_n_write_flush(CDC_ITF_DATA);
-                playBuzzer(' '); // Transmit sound feedback
+                playBuzzer(TRANSMIT_SYMBOL); // Transmit sound feedback
 
             }
             morse_code[0] = '\0';
