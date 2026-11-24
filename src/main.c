@@ -74,9 +74,10 @@ const char *morseSymbols[26] = {
 
  // Prototypes
 static void debug_print(const char *msg);
-// Turns morse symbol to letter
 char morseToText(const char *symbol);
+void 
 
+// Turns morse symbol to letter
 char morseToText(const char *symbol) {
     for (int i=0; i<26; i++) {
         if (strcmp(symbol, morseSymbols[i]) == 0) {
