@@ -97,7 +97,7 @@ static void playBuzzer(char symbol);
 static void init_all(void);
 static void addSymbol(char symbol);
 static void sensorMovement(float gx, float gz);
-static void debug_print(const char *msg);
+static void debug_print(char *trail, const char *message);
 
 
 /* ---------- FUNCTIONS --------------*/
