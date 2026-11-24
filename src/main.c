@@ -90,7 +90,7 @@ const char *morseSymbols[ALPHABET] = {
     "--.."      // Z
 };
 
-/*-------- FUNTION PROTOTYPES ---------*/
+/*-------- FUNCTION PROTOTYPES ---------*/
 
 char morseToText(const char *symbol);
 static void playBuzzer(char symbol);
@@ -132,7 +132,7 @@ static void playBuzzer(char symbol) {
     }
 }
 
-
+// Initializes all the inits
 static void init_all(void) {
     init_hat_sdk();
     init_sw2();
@@ -143,6 +143,7 @@ static void init_all(void) {
     usb_serial_init();
 }
 
+// Tries to add a symbol to morse_code, if there is space. 
 static void addSymbol(char symbol) { 
     int count = strlen(morse_code);
 
@@ -156,6 +157,7 @@ static void addSymbol(char symbol) {
     }
 }
 
+// Checks the sensor movement and adds the corresponding symbol using addSymbol.
 static void sensorMovement(float gx, float gz) {
 
     if (gx > 180.0f) { // Up movement
