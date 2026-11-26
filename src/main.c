@@ -93,7 +93,7 @@ static void playBuzzer(char symbol);
 static void init_all(void);
 static void addSymbol(char symbol);
 static void sensorMovement(float gx, float gz);
-static void debug_print(char *trail, const char *message);
+static void debug_print(const char *trail, const char *message);
 
 
 /* ---------- FUNCTIONS --------------*/
@@ -102,7 +102,7 @@ static void debug_print(char *trail, const char *message);
 static char morseToText(const char *symbol) {
     
     for (uint8_t i=0; i<ALPHABET; i++) {
-        if (strcmp(symbol, morseSymbols[i]) == 0) {
+        if (strcmp(symbol, morseSymbols[i]) == 0) { // strcmp returns 0 if they're equal
             return (char) (i + 'A'); // ASCII code for character (A = 65 ... Z = 90)
         }
     }
@@ -180,7 +180,7 @@ static void sensorMovement(float gx, float gz) {
     }
 }
 
-// Function to print debug messages to USB serial if connected
+// Function to print debug messages into debug port 0 with USB serial if connected
 static void debug_print(const char *trail, const char *message) {
     if (!usb_serial_connected()) {
         return;
@@ -304,7 +304,7 @@ void transmitTask(void *pvParameters) {
     }
 }
 
-// Displays the received message on the screen
+// Displays the received message on the screen one translated letter at a time
 void displayTask(void *pvParameters) {  
     (void)pvParameters;
 
@@ -316,19 +316,18 @@ void displayTask(void *pvParameters) {
         
             for (uint8_t i = 0; received_code[i] != '\0'; i++) {
 
-                // Buzzer feedback for dot and dash
-                playBuzzer(received_code[i]);
+                playBuzzer(received_code[i]); // Buzzer feedback for dot and dash
             
-                if (received_code[i] == SPACE) { // Checks for space character to determine end of morse code letter
-                    if (display_text[0] != '\0') {
+                if (received_code[i] == SPACE) { // Checks for end of word, for example ('.- ') has a space, so the part before the space gets displayed
+                    if (display_text[0] != '\0') { // if display_text isn't empty?
                         char text[MSG_BUFFER];   
-                        snprintf(text, sizeof(text), "%c %s", morseToText(display_text), display_text);
-                        write_text_xy(20, 20, text);
+                        snprintf(text, sizeof(text), "%c %s", morseToText(display_text), display_text); // Adds the translated morse code and symbol morse code into buffer text
+                        write_text_xy(20, 20, text); // Shows the above buffer text on the display, int values are for the pixel positioning. Scale for write_text_xy is changed to '2' inside sdk.c
                         vTaskDelay(pdMS_TO_TICKS(100));
                         clear_display();
-                        display_text[0] = '\0';
+                        display_text[0] = '\0'; // Empties the array
                     }
-                } else if (strlen(display_text) < MSG_BUFFER - 1){
+                } else if (strlen(display_text) < MSG_BUFFER - 1) { // If the current index isn't a space and current display_text isn't bigger than the buffer
                         strncat(display_text, &received_code[i], 1); // Adds the morse code character to display_text 
                 }
             }
