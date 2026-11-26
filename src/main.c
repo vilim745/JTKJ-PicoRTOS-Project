@@ -193,7 +193,7 @@ static void debug_print(const char *trail, const char *message) {
     usb_serial_flush();
 }
 
-// Called automatically when message is received
+// Called automatically when data arrives from USB, runs inside tud_task (usbTask)
 void tud_cdc_rx_cb(uint8_t itf) {
 
     uint8_t buf[CFG_TUD_CDC_RX_BUFSIZE + 1];
@@ -216,7 +216,7 @@ void tud_cdc_rx_cb(uint8_t itf) {
 
 /* ---------- TASKS --------------*/
 
-// Task runs when in IDLE state. Checks for button press and incoming message
+// Task checks for button press and incoming message when in IDLE state
 void clockTask(void *pvParameters) {
     (void)pvParameters;
 
@@ -318,16 +318,16 @@ void displayTask(void *pvParameters) {
 
                 playBuzzer(received_code[i]); // Buzzer feedback for dot and dash
             
-                if (received_code[i] == SPACE) { // Checks for end of word, for example ('.- ') has a space, so the part before the space gets displayed
+                if (received_code[i] == SPACE) { // Checks for end of letter, for example ".- " has a space, so the part before the space gets displayed
                     if (display_text[0] != '\0') { // if display_text isn't empty?
                         char text[MSG_BUFFER];   
-                        snprintf(text, sizeof(text), "%c %s", morseToText(display_text), display_text); // Adds the translated morse code and symbol morse code into buffer text
+                        snprintf(text, sizeof(text), "%c %s", morseToText(display_text), display_text); // Builds for example "A .-" from the letter and its code
                         write_text_xy(20, 20, text); // Shows the above buffer text on the display, int values are for the pixel positioning. Scale for write_text_xy is changed to '2' inside sdk.c
                         vTaskDelay(pdMS_TO_TICKS(100));
                         clear_display();
-                        display_text[0] = '\0'; // Empties the array
+                        display_text[0] = '\0'; // Resets to an empty string
                     }
-                } else if (strlen(display_text) < MSG_BUFFER - 1) { // If the current index isn't a space and current display_text isn't bigger than the buffer
+                } else if (strlen(display_text) < MSG_BUFFER - 1) { // Not a space and display_text has room
                         strncat(display_text, &received_code[i], 1); // Adds the morse code character to display_text 
                 }
             }
