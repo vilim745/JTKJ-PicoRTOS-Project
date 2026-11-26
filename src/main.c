@@ -181,7 +181,7 @@ static void sensorMovement(float gx, float gz) {
 }
 
 // Function to print debug messages to USB serial if connected
-static void debug_print(char *trail, const char *message) {
+static void debug_print(const char *trail, const char *message) {
     if (!usb_serial_connected()) {
         return;
     }
@@ -202,7 +202,7 @@ void tud_cdc_rx_cb(uint8_t itf) {
     uint32_t count = tud_cdc_n_read(itf, buf, sizeof(buf));
 
     if (itf == CDC_ITF_DATA) {
-        for (uint8_t i = 0; i < count; i++) {
+        for (uint32_t i = 0; i < count; i++) {
             if (buf[i] == '\n') { // checks for newline character to determine end of message
                 received_code[index] = '\0';
                 index = 0;
@@ -287,8 +287,6 @@ static void sensorTask(void *pvParameters) {
 // Stdio usb support needs to be disabled and usb-serial-debug linked and added as subdirectory
 void transmitTask(void *pvParameters) {
     (void)pvParameters;
-
-    char buf[MSG_BUFFER] = ""; 
 
     while (1) {
         if (programState == MSG_READY) {
