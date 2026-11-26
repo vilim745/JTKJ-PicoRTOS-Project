@@ -336,6 +336,7 @@ void displayTask(void *pvParameters) {
                         char textCharStr[2] = "";
                         snprintf(textCharStr,sizeof(textCharStr), "%c ", morseToText(morseCharacter));
                         strcat(textString, textCharStr);
+                        strcat(morseString, " ");
                         snprintf(text, sizeof(text), "%s\n%s", morseString, textString); // Builds for example "A .-" from the letter and its code
                         write_text_xy(0, 0, text); // Shows the above buffer text on the display, int values are for the pixel positioning. Scale for write_text_xy is changed to '2' inside sdk.c
                         vTaskDelay(pdMS_TO_TICKS(100));
@@ -345,7 +346,6 @@ void displayTask(void *pvParameters) {
                 } else if (strlen(morseCharacter) < sizeof(morseCharacter) - 1) { // Not a space and display_text has room
                         strncat(morseCharacter, &received_code[i], 1); // Adds the morse code character to display_text 
                         strncat(morseString, morseCharacter, 1);
-                        strcat(morseString, " ");
                 }
             }
             clear_display();
