@@ -318,8 +318,8 @@ void displayTask(void *pvParameters) {
         if (programState == UPDATE_OLED) {
             char text[DISPLAY_SIZE];
             char morseCharacter[LETTER_SIZE] = "";
-            char morseString[LETTER_SIZE * 5 + 5] = "";
-            char textString[LETTER_SIZE * 5 + 5] = "";
+            char morseString[25] = "";
+            char textString[25] = "";
 
             debug_print("Received morse code: ", received_code);
         
@@ -328,13 +328,13 @@ void displayTask(void *pvParameters) {
                 playBuzzer(received_code[i]); // Buzzer feedback for dot and dash
             
                 if (received_code[i] == SPACE) { // Checks for end of letter, for example ".- " has a space, so the part before the space gets displayed
-                    if ((received_code[i-1] == SPACE) || (sizeof(morseString) + sizeof(textString) > DISPLAY_SIZE - 4)) {
+                    if ((received_code[i-1] == SPACE) || (strlen(morseString) + strlen(textString) > DISPLAY_SIZE - 4)) {
                         morseString[0] = '\0';
                         textString[0] = '\0';
                     }
                     if (morseCharacter[0] != '\0') { // if display_text isn't empty?
                         char textCharStr[2] = "";
-                        snprintf(textCharStr,sizeof(textCharStr), "%c ", morseToText(morseCharacter))
+                        snprintf(textCharStr,sizeof(textCharStr), "%c ", morseToText(morseCharacter));
                         strcat(textString, textCharStr);
                         snprintf(text, sizeof(text), "%s\n%s", morseString, textString); // Builds for example "A .-" from the letter and its code
                         write_text_xy(0, 0, text); // Shows the above buffer text on the display, int values are for the pixel positioning. Scale for write_text_xy is changed to '2' inside sdk.c
