@@ -21,7 +21,13 @@ Authors: Vili Mannermaa 2507250, Jasu Känsälä 2410201, Elias Mela 2507227
 
 #define DEFAULT_STACK_SIZE 2048 // Default stack size for the tasks.
 
-#define MSG_BUFFER 128
+#define TX_SIZE 128
+#define RX_SIZE 256
+#define LETTER_SIZE 8
+#define DISPLAY_SIZE 10 // Letter + ' ' + code + '\0'
+#define DEBUG_SIZE (RX_SIZE + 48) // longest message + trail + '\n' + '\0'
+
+#define MSG_END ("  \n")
 #define ALPHABET 26
 
 #define CDC_ITF_DEBUG 0 // Not used here directly, only for clarification
@@ -50,10 +56,10 @@ volatile enum state programState = IDLE;
 bool INCOMING_MSG = false; 
 
 // Morse code from sensor to be transmitted
-char transmit_code[MSG_BUFFER] = "";
+char transmit_code[TX_SIZE] = "";
 
 // Morse code received from computer
-char received_code[MSG_BUFFER] = "";
+char received_code[RX_SIZE] = "";
 
 // Morse symbols for letters
 const char *morseSymbols[ALPHABET] = {
@@ -143,7 +149,7 @@ static void init_all(void) {
 static void addSymbol(char symbol) { 
     uint8_t count = strlen(transmit_code);
 
-    if (count < MSG_BUFFER - 4) {
+    if (count < TX_SIZE - 4) {
         transmit_code[count] = symbol;
         transmit_code[count + 1] = '\0';
 
@@ -186,7 +192,7 @@ static void debug_print(const char *trail, const char *message) {
         return;
     }
 
-    char msg[MSG_BUFFER];
+    char msg[DEBUG_SIZE];
     snprintf(msg, sizeof(msg), "%s%s\n", trail, message);
 
     usb_serial_print(msg);
@@ -207,7 +213,7 @@ void tud_cdc_rx_cb(uint8_t itf) {
                 received_code[index] = '\0';
                 index = 0;
                 INCOMING_MSG = true; // Tell clock task new message is received
-            } else if (index < MSG_BUFFER - 1) {
+            } else if (index < RX_SIZE - 1) {
                 received_code[index++] = (char)buf[i]; // Writes into received_code array
             }
         }
@@ -268,7 +274,7 @@ static void sensorTask(void *pvParameters) {
                     // If button pressed, toggle led, end the message and change program state
                     debug_print(NULL, "\nButton pressed, stopping sensor data collection\n");
                     toggle_led();
-                    strcat(transmit_code, "  \n"); // end of message
+                    strcat(transmit_code, MSG_END); // end of message newline and two spaces
                     programState = MSG_READY;
 
                 } else {
@@ -310,7 +316,7 @@ void displayTask(void *pvParameters) {
 
     while (1) {
         if (programState == UPDATE_OLED) {
-            char display_text[MSG_BUFFER] = "";
+            char display_text[LETTER_SIZE] = "";
 
             debug_print("Received morse code: ", received_code);
         
@@ -320,14 +326,14 @@ void displayTask(void *pvParameters) {
             
                 if (received_code[i] == SPACE) { // Checks for end of letter, for example ".- " has a space, so the part before the space gets displayed
                     if (display_text[0] != '\0') { // if display_text isn't empty?
-                        char text[MSG_BUFFER];   
+                        char text[DISPLAY_SIZE];   
                         snprintf(text, sizeof(text), "%c %s", morseToText(display_text), display_text); // Builds for example "A .-" from the letter and its code
                         write_text_xy(20, 20, text); // Shows the above buffer text on the display, int values are for the pixel positioning. Scale for write_text_xy is changed to '2' inside sdk.c
                         vTaskDelay(pdMS_TO_TICKS(100));
                         clear_display();
                         display_text[0] = '\0'; // Resets to an empty string
                     }
-                } else if (strlen(display_text) < MSG_BUFFER - 1) { // Not a space and display_text has room
+                } else if (strlen(display_text) < sizeof(display_text) - 1) { // Not a space and display_text has room
                         strncat(display_text, &received_code[i], 1); // Adds the morse code character to display_text 
                 }
             }
