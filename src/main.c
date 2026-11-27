@@ -173,7 +173,7 @@ static void sensorMovement(float gx, float gz) {
 
     if (gx > GX_THRESHOLD) { // Up movement
 
-        if (strlen(transmit_code) > 0) {  
+        if (strlen(transmit_code) > 0) {  // First character can't be space
 
             debug_print(NULL, "SPACE");
             addSymbol(SPACE);    // Add space to morse
