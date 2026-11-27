@@ -23,7 +23,7 @@ Authors: Vili Mannermaa 2507250, Jasu Känsälä 2410201, Elias Mela 2507227
 
 #define TX_SIZE 128
 #define RX_SIZE 256
-#define LETTER_SIZE 8
+#define MORSE_SIZE 8
 #define DISPLAY_SIZE 10 // Letter + ' ' + code + '\0'
 #define DEBUG_SIZE (RX_SIZE + 48) // longest message + trail + '\n' + '\0'
 
@@ -316,7 +316,7 @@ void displayTask(void *pvParameters) {
 
     while (1) {
         if (programState == UPDATE_OLED) {
-            char display_text[LETTER_SIZE] = "";
+            char display_morse[MORSE_SIZE] = "";
 
             debug_print("Received morse code: ", received_code);
         
@@ -327,7 +327,7 @@ void displayTask(void *pvParameters) {
                 if (received_code[i] == SPACE) { // Checks for end of letter, for example ".- " has a space, so the part before the space gets displayed
                     if (display_text[0] != '\0') { // if display_text isn't empty?
                         char text[DISPLAY_SIZE];   
-                        snprintf(text, sizeof(text), "%c %s", morseToText(display_text), display_text); // Builds for example "A .-" from the letter and its code
+                        snprintf(text, sizeof(text), "%c %s", morseToText(display_morse), display_morse); // Builds for example "A .-" from the letter and its code
                         write_text_xy(20, 20, text); // Shows the above buffer text on the display, int values are for the pixel positioning. Scale for write_text_xy is changed to '2' inside sdk.c
                         vTaskDelay(pdMS_TO_TICKS(100));
                         clear_display();
