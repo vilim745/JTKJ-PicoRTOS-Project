@@ -38,6 +38,14 @@ Most of the time we wrote the code on one computer either in person or in a disc
 #define DASH '-'
 #define DOT '.'
 #define SPACE ' '
+
+#define DOT_DURATION_MS 50 // Timing for dot buzzer sound
+#define DASH_DURATION_MS 100 //  Timing for dash buzzer sound
+#define BUZZER_DELAY_MS 100 // Timing for between buzzer sounds
+#define END_OF_WORD_DELAY_MS 500 // Timing for end of word delay
+#define SENSOR_DELAY_MS 200 // Timing for sensor delay, used to avoid multiple detections of the same movement
+#define FREQUENCY 700 // Frequency for dot and dash buzzer sound
+
 #define GX_THRESHOLD 180.0f // Threshold for detecting up movement (X-axis)
 #define GZ_THRESHOLD 200.0f // Threshold for detecting sideways movement (Z-axis)
 #define TRANSMIT 'T' // used for buzzer feedback when sending a message
@@ -122,20 +130,20 @@ static char morseToText(const char *symbol) {
 static void playBuzzer(char symbol) {
     if (symbol == DOT) {
         // Play the dot tone
-        buzzer_play_tone(440, 100);
-        vTaskDelay(pdMS_TO_TICKS(150));
+        buzzer_play_tone(FREQUENCY, DOT_DURATION_MS);
+        vTaskDelay(pdMS_TO_TICKS(BUZZER_DELAY_MS));
 
     } else if (symbol == DASH) {
         // Play the dash tone
-        buzzer_play_tone(440, 300);
-        vTaskDelay(pdMS_TO_TICKS(150));
+        buzzer_play_tone(FREQUENCY, DASH_DURATION_MS);
+        vTaskDelay(pdMS_TO_TICKS(BUZZER_DELAY_MS));
         
     } else if (symbol == TRANSMIT) {
         // Play the tone for sending a message
         buzzer_play_tone(460, 150);
         buzzer_play_tone(950, 150);
     } else if (symbol == STARTUP) {
-        // Play the tone for sending a message
+        // Play the tone for starting the program
         buzzer_play_tone(523, 80);
         buzzer_play_tone(659, 80);
         buzzer_play_tone(784, 80);
@@ -177,7 +185,7 @@ static void sensorMovement(float gx, float gz) {
 
             debug_print(NULL, "SPACE");
             addSymbol(SPACE);    // Add space to morse
-            vTaskDelay(pdMS_TO_TICKS(300));
+            vTaskDelay(pdMS_TO_TICKS(SENSOR_DELAY_MS));
         }
 
     } else if (fabs(gz) > GZ_THRESHOLD) { // sideways movement
@@ -191,7 +199,7 @@ static void sensorMovement(float gx, float gz) {
             addSymbol(DASH);
         }
 
-        vTaskDelay(pdMS_TO_TICKS(300));
+        vTaskDelay(pdMS_TO_TICKS(SENSOR_DELAY_MS));
     }
 }
 
@@ -212,18 +220,18 @@ static void debug_print(const char *trail, const char *message) {
 void tud_cdc_rx_cb(uint8_t itf) {
 
     uint8_t buf[CFG_TUD_CDC_RX_BUFSIZE + 1];
-    static size_t index = 0;
 
     uint32_t count = tud_cdc_n_read(itf, buf, sizeof(buf));
 
     if (itf == CDC_ITF_DATA) {
         for (uint32_t i = 0; i < count; i++) {
             if (buf[i] == '\n') { // checks for newline character to determine end of message
-                received_code[index] = '\0';
-                index = 0;
+
                 INCOMING_MSG = true; // Tell clock task new message is received
-            } else if (index < RX_SIZE - 1) {
-                received_code[index++] = (char)buf[i]; // Writes into received_code array
+            } else if (strlen(received_code) < RX_SIZE - 1) {
+                char dataChar[2] = "";
+                sprintf(dataChar,"%c", buf[i]);
+                strcat(received_code, dataChar); // Writes into received_code array
             }
         }
     }
@@ -323,9 +331,9 @@ void transmitTask(void *pvParameters) {
 void displayTask(void *pvParameters) {  
     (void)pvParameters;
 
-    write_text_xy(20, 20, "Hello!");
+    write_text_xy(20, 20, "Hello!"); // Welcome message
     playBuzzer(STARTUP);
-    vTaskDelay(pdMS_TO_TICKS(2000));
+    vTaskDelay(pdMS_TO_TICKS(2000)); // 2 second delay to allow the user to see the welcome message
     clear_display();
 
     while (1) {
@@ -339,14 +347,13 @@ void displayTask(void *pvParameters) {
                 if (received_code[i] == SPACE) { // Checks for end of letter, for example ".- " has a space, so the part before the space gets displayed
                     if (received_code[i-1] == SPACE) {
                         clear_display();
-                        vTaskDelay(pdMS_TO_TICKS(500));
+                        vTaskDelay(pdMS_TO_TICKS(END_OF_WORD_DELAY_MS));
                     }
-                    if (display_morse[0] != '\0') { // if display_morse[0] doesn't have a readable string
+                    if (display_morse[0] != '\0') { // if display_morse[0] isn't empty
                         char text[DISPLAY_SIZE];   
                         snprintf(text, sizeof(text), "%c %s", morseToText(display_morse), display_morse); // Builds for example "A .-" from the letter and its code
                         clear_display();
                         write_text_xy(20, 20, text); // Shows the above buffer text on the display, int values are for the pixel positioning. Scale for write_text_xy is changed to '2' inside sdk.c
-                        vTaskDelay(pdMS_TO_TICKS(100));
                         display_morse[0] = '\0'; // Resets to an empty string
                     }
                 } else if (strlen(display_morse) < sizeof(display_morse) - 1) { // Not a space and display_morse has room
