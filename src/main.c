@@ -1,10 +1,12 @@
 /*
 Authors: Vili Mannermaa 2507250, Jasu Känsälä 2410201, Elias Mela 2507227
+
+Most of our code is written together, therefore it is hard to determine who wrote which function. 
+Most of the time we wrote the code on one computer either in person or in a discord call via screen sharing.
 */
 
 #include <stdio.h>
 #include <string.h>
-
 #include <stdlib.h>
 #include <math.h>
 
@@ -38,7 +40,8 @@ Authors: Vili Mannermaa 2507250, Jasu Känsälä 2410201, Elias Mela 2507227
 #define SPACE ' '
 #define GX_THRESHOLD 180.0f // Threshold for detecting up movement (X-axis)
 #define GZ_THRESHOLD 200.0f // Threshold for detecting sideways movement (Z-axis)
-#define TRANSMIT_SYMBOL 'T' // used for buzzer feedback when sending a message
+#define TRANSMIT 'T' // used for buzzer feedback when sending a message
+#define STARTUP 'S' // used for buzzer feedback when starting the program
 
 /*-------- GLOBAL VARIABLES ---------*/
 
@@ -127,10 +130,16 @@ static void playBuzzer(char symbol) {
         buzzer_play_tone(440, 300);
         vTaskDelay(pdMS_TO_TICKS(150));
         
-    } else if (symbol == TRANSMIT_SYMBOL) {
+    } else if (symbol == TRANSMIT) {
         // Play the tone for sending a message
         buzzer_play_tone(460, 150);
         buzzer_play_tone(950, 150);
+    } else if (symbol == STARTUP) {
+        // Play the tone for sending a message
+        buzzer_play_tone(523, 80);
+        buzzer_play_tone(659, 80);
+        buzzer_play_tone(784, 80);
+        buzzer_play_tone(1047, 200);
     }
 }
 
@@ -301,7 +310,7 @@ void transmitTask(void *pvParameters) {
 
                 tud_cdc_n_write(CDC_ITF_DATA, transmit_code, strlen(transmit_code));
                 tud_cdc_n_write_flush(CDC_ITF_DATA);
-                playBuzzer(TRANSMIT_SYMBOL); // Transmit sound feedback
+                playBuzzer(TRANSMIT); // Transmit sound feedback
             }
             transmit_code[0] = '\0';
             programState = IDLE;      
@@ -314,9 +323,10 @@ void transmitTask(void *pvParameters) {
 void displayTask(void *pvParameters) {  
     (void)pvParameters;
 
-    write_text_xy(20, 20, 'Hello!');
+    write_text_xy(20, 20, "Hello!");
+    playBuzzer(STARTUP);
     vTaskDelay(pdMS_TO_TICKS(2000));
-    clear_display;
+    clear_display();
 
     while (1) {
         if (programState == UPDATE_OLED) {
@@ -327,16 +337,20 @@ void displayTask(void *pvParameters) {
             for (uint8_t i = 0; received_code[i] != '\0'; i++) {
             
                 if (received_code[i] == SPACE) { // Checks for end of letter, for example ".- " has a space, so the part before the space gets displayed
-                    if (display_text[0] != '\0') { // if display_text[0] doesn't have a readable string
+                    if (received_code[i-1] == SPACE) {
+                        clear_display();
+                        vTaskDelay(pdMS_TO_TICKS(500));
+                    }
+                    if (display_morse[0] != '\0') { // if display_morse[0] doesn't have a readable string
                         char text[DISPLAY_SIZE];   
                         snprintf(text, sizeof(text), "%c %s", morseToText(display_morse), display_morse); // Builds for example "A .-" from the letter and its code
                         clear_display();
                         write_text_xy(20, 20, text); // Shows the above buffer text on the display, int values are for the pixel positioning. Scale for write_text_xy is changed to '2' inside sdk.c
                         vTaskDelay(pdMS_TO_TICKS(100));
-                        display_text[0] = '\0'; // Resets to an empty string
+                        display_morse[0] = '\0'; // Resets to an empty string
                     }
-                } else if (strlen(display_text) < sizeof(display_text) - 1) { // Not a space and display_text has room
-                        strncat(display_text, &received_code[i], 1); // Adds the morse code character to display_text 
+                } else if (strlen(display_morse) < sizeof(display_morse) - 1) { // Not a space and display_morse has room
+                        strncat(display_morse, &received_code[i], 1); // Adds the morse code character to display_morse 
                 }
                 playBuzzer(received_code[i]); // Buzzer feedback for dot and dash
             }
