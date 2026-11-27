@@ -248,7 +248,7 @@ static void sensorTask(void *pvParameters) {
     (void)pvParameters;
 
     float ax, ay, az, gx, gy, gz, t;
-
+    
     vTaskDelay(pdMS_TO_TICKS(100));
     for (uint8_t i = 0; i < 30 && !usb_serial_connected(); i++) {
         vTaskDelay(pdMS_TO_TICKS(100));
@@ -314,6 +314,10 @@ void transmitTask(void *pvParameters) {
 void displayTask(void *pvParameters) {  
     (void)pvParameters;
 
+    write_text_xy(20, 20, 'Hello!');
+    vTaskDelay(pdMS_TO_TICKS(2000));
+    clear_display;
+
     while (1) {
         if (programState == UPDATE_OLED) {
             char display_morse[MORSE_SIZE] = "";
@@ -321,21 +325,20 @@ void displayTask(void *pvParameters) {
             debug_print("Received morse code: ", received_code);
         
             for (uint8_t i = 0; received_code[i] != '\0'; i++) {
-
-                playBuzzer(received_code[i]); // Buzzer feedback for dot and dash
             
                 if (received_code[i] == SPACE) { // Checks for end of letter, for example ".- " has a space, so the part before the space gets displayed
-                    if (display_text[0] != '\0') { // if display_text isn't empty?
+                    if (display_text[0] != '\0') { // if display_text[0] doesn't have a readable string
                         char text[DISPLAY_SIZE];   
                         snprintf(text, sizeof(text), "%c %s", morseToText(display_morse), display_morse); // Builds for example "A .-" from the letter and its code
+                        clear_display();
                         write_text_xy(20, 20, text); // Shows the above buffer text on the display, int values are for the pixel positioning. Scale for write_text_xy is changed to '2' inside sdk.c
                         vTaskDelay(pdMS_TO_TICKS(100));
-                        clear_display();
                         display_text[0] = '\0'; // Resets to an empty string
                     }
                 } else if (strlen(display_text) < sizeof(display_text) - 1) { // Not a space and display_text has room
                         strncat(display_text, &received_code[i], 1); // Adds the morse code character to display_text 
                 }
+                playBuzzer(received_code[i]); // Buzzer feedback for dot and dash
             }
             clear_display();
             received_code[0] = '\0';
